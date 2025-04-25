@@ -7,8 +7,7 @@
 }
 
 body {
-    /* background: linear-gradient(135deg, #1a1a1a, #2a2a2a); */
-    background: #171717;
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
     color: #ffffff;
     line-height: 1.6;
     overflow-x: hidden;
@@ -32,70 +31,18 @@ body {
     background: linear-gradient(180deg, #00CC33, #006616);
 }
 
-/* body .body-content{
-    position: relative;
-    width: 100%;
-    height: 100%;
-} */
-
 /* Header styles */
-.header {
-    position: fixed;
-    width: 100%;
-    top: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.7);
-    box-shadow: 0 4px 20px rgba(11, 50, 9, 0.5);
-    
-
-    /* text-align: center;
+header {
+    text-align: center;
     padding: 40px 20px;
     background: rgba(0, 0, 0, 0.7);
     border-bottom: 3px solid #00FF40;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    position: relative; */
-    z-index: 10; 
+    position: relative;
+    z-index: 10;
 }
 
-/* .header .overlayz-logo{
-    width: 100%;
-    padding: 0;
-} */
-
-.header .overlayz-logo img{
-    height: 40px;
-    width: auto;
-    padding-top: 5px;
-}
-
-
-.header .nav-connect-button{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-}
-
-.header .nav-connect-button .btn {
-    padding: 10px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    background: linear-gradient(90deg, #00FF40, #008020);
-    color: #1a1a1a;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-}
-
-/* header h1 {
+header h1 {
     font-family: 'PhatBoi', sans-serif;
     font-size: 4rem;
     background: linear-gradient(90deg, #00FF40, #008020);
@@ -104,18 +51,17 @@ body {
     text-shadow: 0 0 15px rgba(0, 255, 64, 0.5);
     letter-spacing: 2px;
     text-transform: uppercase;
-} */
+}
 
 /* Main content styles */
 main {
-    position: relative;
-    margin-top: 60px;
     padding: 40px 20px;
     position: relative;
+    z-index: 5;
 }
 
 .container {
-    /* max-width: 1200px; */
+    max-width: 1200px;
     margin: 0 auto;
 }
 
@@ -125,7 +71,7 @@ main {
     text-align: center;
 }
 
-main .wallet-section h2 {
+.wallet-section h2 {
     font-family: 'PhatBoi', sans-serif;
     font-size: 2.5rem;
     margin-bottom: 20px;
@@ -135,12 +81,12 @@ main .wallet-section h2 {
     text-shadow: 0 0 10px rgba(0, 255, 64, 0.5);
 }
 
-main .btn {
+.btn {
     padding: 12px 24px;
     background: linear-gradient(90deg, #00FF40, #008020);
-    color: #1a1a1a;
+    color: #ffffff;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 1.1rem;
     font-weight: 600;
@@ -160,7 +106,7 @@ main .btn {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-main #wallet-status {
+#wallet-status {
     margin-top: 15px;
     font-size: 1rem;
     color: #cccccc;
