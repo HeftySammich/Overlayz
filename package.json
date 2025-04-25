@@ -9,7 +9,8 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^6.3.1"
+    "vite": "^6.3.1",
+    "vite-plugin-commonjs": "^0.10.4"
   },
   "dependencies": {
     "@hashgraph/hedera-wallet-connect": "^1.5.1",
