@@ -45,6 +45,7 @@ function handleNewSession(session) {
   const accountId = account.split(':').pop();
   localStorage.setItem('hederaAccountId', accountId);
   document.getElementById('wallet-status').textContent = `Connected: ${accountId}`;
+  document.getElementById('main-wallet-status').textContent = `Connected: ${accountId}`;
   document.getElementById('connect-wallet').textContent = 'Disconnect Wallet';
   document.getElementById('connect-wallet').classList.add('connected');
 
@@ -59,6 +60,7 @@ async function disconnectWallet() {
       await dAppConnector.disconnect();
       dAppConnector = null;
       document.getElementById('wallet-status').textContent = 'Wallet not connected';
+      document.getElementById('main-wallet-status').textContent = 'Wallet not connected';
       document.getElementById('connect-wallet').textContent = 'Connect Wallet';
       document.getElementById('connect-wallet').classList.remove('connected');
       document.getElementById('nft-list').innerHTML = '<p class="nft-placeholder">Connect wallet to see NFTs</p>';
