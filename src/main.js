@@ -218,12 +218,61 @@ document.addEventListener('DOMContentLoaded', () => {
       const nfts = data.nfts || [];
       const nftList = document.getElementById('nft-list');
       if (nftList) {
-        nftList.innerHTML = nfts.map(nft => `
-          <div class="nft-item" data-serial="${nft.serial_number}">
-            <img src="${nft.metadata ? `data:image/png;base64,${nft.metadata}` : 'https://via.placeholder.com/150'}" alt="NFT" onclick="selectNFT(this)">
-            <p>Serial: ${nft.serial_number}</p>
-          </div>
-        `).join('');
+        nftList.innerHTML = await Promise.all(nfts.map(async nft => {
+          let imageUrl = 'https://via.placeholder.com/150';
+          if (nft.metadata) {
+            // Decode the base64 metadata
+            const metadataStr = atob(nft.metadata);
+            console.log(`Decoded metadata for NFT ${nft.serial_number}:`, metadataStr);
+            // Check if metadataStr is an IPFS URL
+            if (metadataStr.startsWith('ipfs://')) {
+              const ipfsHash = metadataStr.replace('ipfs://', '');
+              const metadataUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+              console.log(`Fetching metadata from: ${metadataUrl}`);
+              try {
+                // Fetch the metadata JSON from the IPFS URL
+                const metadataResponse = await fetch(metadataUrl);
+                const metadata = await metadataResponse.json();
+                console.log(`Metadata for NFT ${nft.serial_number}:`, metadata);
+                if (metadata.image) {
+                  // Handle the image URL from the metadata
+                  if (metadata.image.startsWith('ipfs://')) {
+                    const imageHash = metadata.image.replace('ipfs://', '');
+                    imageUrl = `https://ipfs.io/ipfs/${imageHash}`;
+                  } else {
+                    imageUrl = metadata.image;
+                  }
+                  console.log(`Final image URL for NFT ${nft.serial_number}:`, imageUrl);
+                }
+              } catch (e) {
+                console.error(`Error fetching metadata from IPFS for NFT ${nft.serial_number}:`, e);
+              }
+            } else {
+              // If metadataStr isn't an IPFS URL, try parsing it as JSON
+              try {
+                const metadata = JSON.parse(metadataStr);
+                console.log(`Metadata for NFT ${nft.serial_number}:`, metadata);
+                if (metadata.image) {
+                  if (metadata.image.startsWith('ipfs://')) {
+                    const imageHash = metadata.image.replace('ipfs://', '');
+                    imageUrl = `https://ipfs.io/ipfs/${imageHash}`;
+                  } else {
+                    imageUrl = metadata.image;
+                  }
+                  console.log(`Final image URL for NFT ${nft.serial_number}:`, imageUrl);
+                }
+              } catch (e) {
+                console.error(`Metadata parse error for NFT ${nft.serial_number}:`, e);
+              }
+            }
+          }
+          return `
+            <div class="nft-item" data-serial="${nft.serial_number}">
+              <img src="${imageUrl}" alt="NFT" onclick="selectNFT(this)">
+              <p>Serial: ${nft.serial_number}</p>
+            </div>
+          `;
+        })).then(results => results.join(''));
       }
     } catch (error) {
       console.error('NFT fetch error:', error);
