@@ -1,61 +1,139 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Overlayz - NFT Overlay Tool for Hedera</title>
-    <link rel="stylesheet" href="./src/css/style.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        @font-face {
-            font-family: 'PhatBoi';
-            src: local('CC Phat Boi'), local('CCPhatBoi'), local('Phat Boi'), local('PhatBoi'), local('cc-phat-boi'), local('CC-Phat-Boi');
-            font-weight: normal;
-            font-style: normal;
-        }
-        @font-face {
-            font-family: 'PhatBoi';
-            src: local('CC Phat Boi Bold'), local('CCPhatBoi Bold'), local('Phat Boi Bold'), local('PhatBoi Bold'), local('cc-phat-boi-bold'), local('CC-Phat-Boi-Bold');
-            font-weight: bold;
-            font-style: normal;
-        }
-    </style>
-    <script type="module" src="/src/main.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overlayz - NFT Overlay Tool for Hedera</title>
+  <link rel="icon" type="image/png" href="/public/assets/Overlayz_App_Icon.png" />
+  <link rel="stylesheet" href="./src/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Akaya+Kanadaka&family=Play:wght@400;700&display=swap" rel="stylesheet" />
+  <script type="module" src="/src/main.js"></script>
 </head>
+
 <body>
-    <header>
-        <h1>Overlayz</h1>
-    </header>
+  <div class="body-content">
+    <div class="header">
+      <div class="overlayz-logo">
+        <img src="/public/assets/Overlayz.Slime.logo.png" alt="Overlayz Logo" class="logo" />
+      </div>
+      <div class="nav-connect-button">
+        <button id="connect-wallet" class="btn">Connect Wallet</button>
+        <p id="wallet-status"></p>
+      </div>
+    </div>
     <main>
-        <div class="container">
-            <div class="wallet-section">
-                <h2>Connect Your Wallet</h2>
-                <button id="connect-wallet" class="btn">Connect Wallet</button>
-                <p id="wallet-status">Wallet not connected</p>
-            </div>
-            <div class="nft-section">
-                <h2>Your NFTs</h2>
-                <div id="nft-list" class="nft-list">
-                    <p class="nft-placeholder">Connect wallet to see NFTs</p>
-                </div>
-            </div>
-            <div class="overlay-section">
-                <h2>Overlay Accessories</h2>
-                <div class="accessory-buttons">
-                    <button id="cowboy-hat" class="btn accessory-btn">Cowboy Hat</button>
-                    <button id="crown" class="btn accessory-btn">Crown</button>
-                    **<input type="file" id="overlay-upload" accept="image/*" class="btn">**
-                </div>
-                <div id="nft-display" class="nft-display">
-                    **<canvas id="nft-canvas"></canvas>**
-                    <p class="canvas-placeholder">Select an NFT to start overlaying</p>
-                </div>
-                **<button id="apply-overlay" class="btn">Apply Overlay</button>**
-                **<img id="overlay-img" style="display: none;">**
-            </div>
+      <div class="container">
+        <div class="nft-section">
+          <h2>YOUR NFTS</h2>
+          <div id="nft-list" class="nft-list">
+            <p class="nft-placeholder">Connect wallet to see NFTs</p>
+          </div>
         </div>
+        <div class="overlay-section">
+          <h2 class="overlay-header">OVERLAYZ</h2>
+          <p class="overlay-intro">Select an Overlay</p>
+          <div class="accessory-buttons">
+            <button id="cowboy-hat" class="btn accessory-btn">
+              <span>Good Morning</span>
+              <img class="btn-over" src="/public/assets/arts/Good_Morning._Overlay.png" />
+            </button>
+            <button id="cowboy-hat" class="btn accessory-btn">
+              <span>Microphone</span>
+              <img src="/public/assets/arts/Mic.Overlay.png">
+            </button>
+            <button id="cowboy-hat" class="btn accessory-btn">
+              <span>Bombox</span>
+              <img src="/public/assets/arts/Boombox.Overlay.png">
+            </button>
+            <button id="cowboy-hat" class="btn accessory-btn">
+              <span>Bonjour</span>
+              <img src="/public/assets/arts/Bonjour.Overlay.png">
+            </button>
+            <button id="cowboy-hat" class="btn accessory-btn">
+              <span>Sign</span>
+              <img src="/public/assets/arts/Sign.Overlay.png">
+            </button>
+            <button id="cowboy-hat" class="btn accessory-btn">
+              <span>Goodnight</span>
+              <img src="/public/assets/arts/Goodnight.Overlay.png">
+            </button>
+            <div class="file-input-wrapper">
+              <input type="file" id="overlay-upload" accept="image/*" class="file-input" />
+              <label for="overlay-upload" class="custom-btn">Upload Image</label>
+            </div>
+          </div>
+          <div id="nft-display" class="nft-display">
+            <canvas id="nft-canvas"></canvas>
+            <p class="canvas-placeholder">
+              Select an NFT to start overlaying
+            </p>
+          </div>
+          <button id="apply-overlay" class="btn">Apply Overlay</button>
+          <img id="overlay-img" style="display: none" />
+        </div>
+      </div>
     </main>
+    <div class="footer">
+      <div class="footer-content">
+        
+        <div class="creator">
+          <p class="credit-head">Credits</p>
+          <div>
+            <a href="https://x.com/heftysammich?t=LzKGTzf5roHM-sYeQf9Axg&s=09">
+              <h3>@HeftySammich</h3>
+            </a>
+            <p>Creator</p>
+          </div>
+          
+        </div>
+        
+        <div class="credit">
+          
+          <div class="credit-card">
+            <div class="credit-info">
+              <a href="https://x.com/Be3bZilla?t=8roKg-1lHpwsWwS9zn8OZg&s=09">
+                <p>@Beeb</p>
+              </a>
+              <p>Web Designer</p>
+            </div>
+          </div>
+          <div class="credit-card">
+            <div class="credit-info">
+              <a href="https://x.com/bngjs_?t=_zDuVZK7hZ3JvjUgrFwtWg&s=09">
+                <p>@Bangjos</p>
+              </a>
+              <p>Overlay Art</p>
+            </div>
+          </div>
+          
+        </div>
+        
+        <div class="slime-tag">
+          <img src="/public/assets/SLIME.gif" alt="Slime" />
+          
+          <div class="slime-social">
+            <a href="https://heyproxy.io/slime/">
+              <img src="/public/assets/icon/link.png" />
+            </a>
+            <a href="https://x.com/builtbyslime?t=6FKdpvRrUPz0uVRMY8VkzQ&s=09">
+              <img src="/public/assets/icon/twitter.png" />
+            </a>
+            <a href="">
+              <img src="/public/assets/icon/discord.png" />
+            </a>
+          </div>
+        </div>
+        
+        <div class="copyright">
+          <p><small>&copy;2025 | Built by Slime</small></p>
+        </div>
+        
+      </div>
+    </div>
+  </div>
 </body>
+
 </html>

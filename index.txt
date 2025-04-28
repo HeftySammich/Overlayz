@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlayz - NFT Overlay Tool for Hedera</title>
+    <link rel="stylesheet" href="./src/css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'PhatBoi';
+            src: local('CC Phat Boi'), local('CCPhatBoi'), local('Phat Boi'), local('PhatBoi'), local('cc-phat-boi'), local('CC-Phat-Boi');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'PhatBoi';
+            src: local('CC Phat Boi Bold'), local('CCPhatBoi Bold'), local('Phat Boi Bold'), local('PhatBoi Bold'), local('cc-phat-boi-bold'), local('CC-Phat-Boi-Bold');
+            font-weight: bold;
+            font-style: normal;
+        }
+    </style>
+    <script type="module" src="/src/main.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Overlayz</h1>
+    </header>
+    <main>
+        <div class="container">
+            <div class="wallet-section">
+                <h2> Your Wallet</h2>
+                <button id="connect-wallet" class="btn">Connect Wallet</button>
+                <p id="wallet-status">Wallet not connected</p>
+            </div>
+            <div class="nft-section">
+                <h2>Your NFTs</h2>
+                <div id="nft-list" class="nft-list">
+                    <p class="nft-placeholder">Connect wallet to see NFTs</p>
+                </div>
+            </div>
+            <div class="overlay-section">
+                <h2>Overlay Accessories</h2>
+                <div class="accessory-buttons">
+                    <button id="cowboy-hat" class="btn accessory-btn">Cowboy Hat</button>
+                    <button id="crown" class="btn accessory-btn">Crown</button>
+                    **<input type="file" id="overlay-upload" accept="image/*" class="btn">**
+                </div>
+                <div id="nft-display" class="nft-display">
+                    **<canvas id="nft-canvas"></canvas>**
+                    <p class="canvas-placeholder">Select an NFT to start overlaying</p>
+                </div>
+                **<button id="apply-overlay" class="btn">Apply Overlay</button>**
+                **<img id="overlay-img" style="display: none;">**
+            </div>
+        </div>
+    </main>
+</body>
+</html>

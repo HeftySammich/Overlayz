@@ -21,10 +21,10 @@ async function initializeWalletConnect() {
       ['chainChanged', 'accountsChanged'],
       ['hedera:testnet']
     );
-
+    
     await dAppConnector.init({ logger: 'error' });
     console.log('WalletConnect initialized');
-
+    
     // Auto-connect
     const session = await dAppConnector.openModal();
     handleNewSession(session);
@@ -41,13 +41,13 @@ function handleNewSession(session) {
     console.error('No account found');
     return;
   }
-
+  
   const accountId = account.split(':').pop();
   localStorage.setItem('hederaAccountId', accountId);
   document.getElementById('wallet-status').textContent = `Connected: ${accountId}`;
   document.getElementById('connect-wallet').textContent = 'Disconnect Wallet';
   document.getElementById('connect-wallet').classList.add('connected');
-
+  
   // Fetch NFTs
   fetchNFTs(accountId);
 }
@@ -89,6 +89,7 @@ async function fetchNFTs(accountId) {
 
 // Select NFT for overlay
 let selectedNFT = null;
+
 function selectNFT(img) {
   selectedNFT = img.src;
   document.querySelectorAll('.nft-item').forEach(item => item.classList.remove('selected'));
@@ -123,7 +124,8 @@ document.getElementById('crown').addEventListener('click', () => {
 const canvas = document.getElementById('nft-canvas');
 const ctx = canvas.getContext('2d');
 let isDragging = false;
-let overlayX = 0, overlayY = 0;
+let overlayX = 0,
+  overlayY = 0;
 
 function drawCanvas() {
   if (!selectedNFT) return;
