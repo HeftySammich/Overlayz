@@ -23,11 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('Creating DAppConnector instance');
       dAppConnector = new DAppConnector(
         metadata,
-        LedgerId.TESTNET,
+        LedgerId.MAINNET,
         projectId,
         ['hedera_getAccountBalance', 'hedera_sign', 'hedera_signTransaction'],
         ['chainChanged', 'accountsChanged'],
-        ['hedera:testnet']
+        ['hedera:mainnet']
       );
 
       console.log('Initializing DAppConnector');
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function fetchNFTs(accountId) {
     console.log('Fetching NFTs for account:', accountId);
     try {
-      const response = await fetch(`https://testnet.mirrornode.hedera.com/api/v1/accounts/${accountId}/nfts`);
+      const response = await fetch(`https://mainnet.mirrornode.hedera.com/api/v1/accounts/${accountId}/nfts`);
       const data = await response.json();
       const nfts = data.nfts || [];
       const nftList = document.getElementById('nft-list');
