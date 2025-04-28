@@ -86,13 +86,13 @@ document.addEventListener('DOMContentLoaded', () => {
           button.addEventListener('click', () => {
             const overlayImg = document.getElementById('overlay-img');
             const overlays = [
-              '/public/assets/arts/Good_Morning._Overlay.png', // overlay1: Good Morning
-              '/public/assets/arts/Mic.Overlay.png',          // overlay2: Microphone
-              '/public/assets/arts/Boombox.Overlay.png',      // overlay3: Boombox
-              '/public/assets/arts/Bonjour.Overlay.png',      // overlay4: Bonjour
-              '/public/assets/arts/Sign.Overlay.png',         // overlay5: Sign
-              '/public/assets/arts/Goodnight.Overlay.png',    // overlay6: Goodnight
-              ''                                              // overlay7: Upload Image (handled separately)
+              '/assets/arts/Good_Morning._Overlay.png', // overlay1: Good Morning
+              '/assets/arts/Mic.Overlay.png',          // overlay2: Microphone
+              '/assets/arts/Boombox.Overlay.png',      // overlay3: Boombox
+              '/assets/arts/Bonjour.Overlay.png',      // overlay4: Bonjour
+              '/assets/arts/Sign.Overlay.png',         // overlay5: Sign
+              '/assets/arts/Goodnight.Overlay.png',    // overlay6: Goodnight
+              ''                                       // overlay7: Upload Image (handled separately)
             ];
             // Only set overlayImg.src for buttons overlay1 to overlay6
             if (index < 6) {
