@@ -6,6 +6,7 @@
   font-family: "Open Sans", sans-serif;
   font-family: "Play", sans-serif;
   text-decoration: none;
+  color: #ffffff;
 }
 
 @font-face {
@@ -13,16 +14,6 @@
   src: url('/public/assets/fonts/Lethal Slime.ttf') format('truetype'); /* Path to the font file */
   font-weight: normal;
   font-style: normal;
-}
-
-/* Apply the font globally or to specific elements */
-
-body {
-  /* background: linear-gradient(135deg, #1a1a1a, #2a2a2a); */
-  background: #171717;
-  color: #ffffff;
-  line-height: 1.6;
-  overflow-x: hidden;
 }
 
 /* Scrollbar styling */
@@ -50,8 +41,6 @@ body {
   width: 100vw;
   background: url("/public/assets/Overlayz_App_Icon.png") no-repeat center center;
   background-size: cover;
-  /* Ensures the image scales proportionally to fill the screen */
-  color: white;
   font-family: Arial, sans-serif;
 }
 
