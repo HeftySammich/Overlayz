@@ -11,8 +11,10 @@
 }
 
 @font-face {
-  font-family: 'Lethal Slime'; /* Name the font */
-  src: url('/public/assets/fonts/Lethal Slime.ttf') format('truetype'); /* Path to the font file */
+  font-family: 'Lethal Slime';
+  /* Name the font */
+  src: url('/public/assets/fonts/Lethal Slime.ttf') format('truetype');
+  /* Path to the font file */
   font-weight: normal;
   font-style: normal;
 }
@@ -38,7 +40,7 @@
 body {
   margin: 0;
   padding: 0;
-  min-height: 100vh;
+  height: 100vh;
   width: 100vw;
   background: url("/public/assets/Overlayz_App_Icon.png") no-repeat center center;
   background-size: cover;
@@ -163,10 +165,12 @@ main .btn {
 }
 
 .custom-btn {
+  position: relative;
   display: inline-block;
   background: linear-gradient(90deg, #00ff40, #008020);
   color: #020202;
-  padding: 10px 20px;
+  padding: 13px;
+  min-width: fit-content;
   text-align: center;
   cursor: pointer;
   border: none;
@@ -285,12 +289,12 @@ main #wallet-status {
 
 .accessory-buttons {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
-  overflow-x: auto;
-  justify-content: left;
-  gap: 15px;
+  justify-content: center;
+  gap: 10px;
   margin: 30px 0;
+  padding: 10px 15%;
 }
 
 .accessory-buttons::-webkit-scrollbar {
@@ -299,7 +303,7 @@ main #wallet-status {
 
 .accessory-btn {
   position: relative;
-  padding: 5px;
+  padding: 10px;
   min-width: fit-content;
   text-wrap: nowrap;
   background: rgba(255, 255, 255, 0.1);
@@ -324,7 +328,7 @@ main #wallet-status {
   box-shadow: 0 0 10px rgba(0, 255, 64, 0.5);
 }
 
-.accessory-btn img{
+.accessory-btn img {
   position: absolute;
   right: -20px;
   top: 0;
@@ -338,7 +342,7 @@ main #wallet-status {
   /*z-index: 1;*/
 }
 
-.accessory-btn span{
+.accessory-btn span {
   position: relative;
   color: #000000;
   z-index: 1;
@@ -409,8 +413,8 @@ main #wallet-status {
 }
 
 
-.footer-content{
-  display:flex;
+.footer-content {
+  display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 20px;
@@ -419,53 +423,52 @@ main #wallet-status {
 .footer .creator {
   display: flex;
   align-items: center;
+  flex-direction: column;
   justify-content: center;
 }
 
-.footer .creator div{
+.footer .creator .credit-head {
+  font-size: 25px;
+  font-weight: bold;
+  color: #00ff40;
+}
+
+.footer .creator div {
   display: flex;
   flex-direction: column;
   gap: 10px;
   justify-content: center;
   padding: 20px;
   border-radius: 10px;
+  margin-top: 20px;
   background-color: #000000BD;
 }
 
-.footer .creator h3{
+.footer .creator h3 {
   color: #FFFFFF;
 }
 
-.footer .credit{
+.footer .credit {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 15px;
 }
 
-.footer .credit .credit-card{
+.footer .credit .credit-card {
   position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 40px 10px 10px 10px;
+  padding: 10px;
 }
 
-.footer .credit .credit-card a{
+.footer .credit .credit-card a {
   text-decoration: none;
   color: #FFFFFF;
 }
 
-.footer .credit .credit-card .head{
-  position: absolute;
-  top: 0;
-  left: 0;
-  font-size: 25px;
-  font-weight: bold;
-  color: #00ff40;
-}
-
-.footer .slime-tag{
+.footer .slime-tag {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -473,20 +476,20 @@ main #wallet-status {
   gap: 10px;
 }
 
-.footer .slime-tag img{
+.footer .slime-tag img {
   width: 200px;
 }
 
-.footer .slime-tag .slime-social{
+.footer .slime-tag .slime-social {
   display: flex;
   gap: 20px;
 }
 
-.footer .slime-tag .slime-social img{
+.footer .slime-tag .slime-social img {
   width: 30px;
 }
 
-.footer .copyright{
+.footer .copyright {
   display: flex;
   justify-content: center;
   padding: 10px;
@@ -523,10 +526,6 @@ main #wallet-status {
     height: 300px;
   }
   
-  .accessory-btn {
-    padding: 10px;
-    font-size: 0.9rem;
-  }
 }
 
 @media (max-width: 480px) {
@@ -551,5 +550,12 @@ main #wallet-status {
   .nft-display {
     max-width: 250px;
     height: 250px;
+  }
+  
+  .accessory-buttons {
+    justify-content: left;
+    flex-wrap: nowrap;
+    padding: 0 5px;
+    overflow-x: auto;
   }
 }
