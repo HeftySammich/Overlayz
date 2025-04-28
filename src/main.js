@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ['hedera:mainnet']
       );
 
-      console.log('Initializing DAppConnector');
+      console.log('Initializing  DAppConnector');
       await dAppConnector.init({ logger: 'error' });
       console.log('WalletConnect initialized successfully');
 
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let isDragging = false;
         let overlayX = 0, overlayY = 0;
         let overlayWidth = 0, overlayHeight = 0; // Will be set based on NFT size
-        let scaleFactor = 0.3; // Initial overlay size: 30% of NFT size
+        let scaleFactor = 0.5; // Initial overlay size: 50% of NFT size
 
         canvas.addEventListener('mousedown', (e) => {
           isDragging = true;
