@@ -5,7 +5,17 @@
   box-sizing: border-box;
   font-family: "Open Sans", sans-serif;
   font-family: "Play", sans-serif;
+  text-decoration: none;
 }
+
+@font-face {
+  font-family: 'Lethal Slime'; /* Name the font */
+  src: url('/public/assets/fonts/Lethal Slime.ttf') format('truetype'); /* Path to the font file */
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Apply the font globally or to specific elements */
 
 body {
   /* background: linear-gradient(135deg, #1a1a1a, #2a2a2a); */
@@ -15,27 +25,9 @@ body {
   overflow-x: hidden;
 }
 
-/* .play-regular {
-  font-family: "Play", sans-serif;
-  font-weight: 400;
-  font-style: normal;
-}
-
-.play-bold {
-  font-family: "Play", sans-serif;
-  font-weight: 700;
-  font-style: normal;
-} */
-
-/* .akaya-kanadaka-regular {
-  font-family: "Akaya Kanadaka", system-ui;
-  font-weight: 400;
-  font-style: normal;
-} */
-
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -51,25 +43,14 @@ body {
   background: linear-gradient(180deg, #00cc33, #006616);
 }
 
-/* body {
-  background-image: url("/public/assets/depth-perception.png"); 
-  background-size: 600px 500px; 
-  background-position: 300px 200px; 
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  width: 100vw; 
-  height: 100vh;
-} */
-
 body {
-  /* Ensure full viewport height and width */
   margin: 0;
   padding: 0;
-  height: 100vh; /* Full height of viewport */
-  width: 100vw; /* Full width of viewport */
-  background: url("/public/assets/Overlayz_App_Icon.png") no-repeat center
-    center;
-  background-size: cover; /* Ensures the image scales proportionally to fill the screen */
+  height: 100vh;
+  width: 100vw;
+  background: url("/public/assets/Overlayz_App_Icon.png") no-repeat center center;
+  background-size: cover;
+  /* Ensures the image scales proportionally to fill the screen */
   color: white;
   font-family: Arial, sans-serif;
 }
@@ -80,12 +61,11 @@ body {
   overflow: auto;
   width: 100%;
   height: 100%;
-  background-color: rgba(
-    0,
-    0,
-    0,
-    0.8
-  ); /* Semi-transparent overlay to darken content */
+  background-color: rgba(0,
+      0,
+      0,
+      0.8);
+  /* Semi-transparent overlay to darken content */
 }
 
 /* Header styles */
@@ -100,15 +80,8 @@ body {
   align-items: center;
   padding: 10px;
   background-color: #020202;
-  /* background-color: rgba(0, 0, 0, 0.7); */
-  /* box-shadow: 0 4px 20px rgba(11, 50, 9, 0.5); */
-  z-index: 10;
+  z-index: 1;
 }
-
-/* .header .overlayz-logo{
-    width: 100%;
-    padding: 0;
-} */
 
 .header .overlayz-logo img {
   height: 40px;
@@ -140,7 +113,7 @@ body {
 /* Main content styles */
 main {
   position: relative;
-  margin-top: 60px;
+  margin-top: 70px;
   padding: 40px 20px;
   position: relative;
 }
@@ -157,7 +130,7 @@ main {
 }
 
 main .wallet-section h2 {
-  font-family: "PhatBoi", sans-serif;
+  font-family: 'Lethal Slime', sans-serif;
   font-size: 2.5rem;
   margin-bottom: 20px;
   background: linear-gradient(90deg, #00ff40, #008020);
@@ -174,7 +147,6 @@ main .btn {
   border-radius: 5px;
   cursor: pointer;
   font-size: 1.1rem;
-  /* font-weight: 600; */
   text-transform: uppercase;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -197,7 +169,7 @@ main .btn {
 }
 
 .file-input {
-  display: none; /* Hides the default file input */
+  display: none;
 }
 
 .custom-btn {
@@ -211,12 +183,13 @@ main .btn {
   border-radius: 5px;
   font-size: 16px;
   text-transform: uppercase;
+  text-wrap: nowrap;
   transition: all 0.3s ease;
   transition: background-color 0.3s ease;
 }
 
 .custom-btn:hover {
-  background-color: #45a049; /* Slightly darker green on hover */
+  background-color: #45a049;
 }
 
 .chose-btn {
@@ -240,13 +213,16 @@ main #wallet-status {
 
 .nft-section h2,
 .overlay-section h2 {
-  font-family: "Akaya Kanadaka", system-ui;
+  font-family: 'Lethal Slime', sans-serif;
   font-size: 3rem;
-  margin-bottom: 20px;
   background: linear-gradient(90deg, #00ff40, #008020);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   /* text-shadow: 0 0 10px rgba(0, 255, 64, 0.5); */
+}
+
+.overlay-section .overlay-intro {
+  font-size: 18px;
 }
 
 .nft-list {
@@ -257,7 +233,9 @@ main #wallet-status {
   border-radius: 10px;
   padding: 20px;
   min-height: 200px;
-  position: relative; /* For centering the placeholder */
+  position: relative;
+  margin: 20px 0;
+  /* For centering the placeholder */
 }
 
 .nft-placeholder {
@@ -317,20 +295,31 @@ main #wallet-status {
 
 .accessory-buttons {
   display: flex;
-  justify-content: center;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+  justify-content: left;
   gap: 15px;
-  margin-bottom: 20px;
+  margin: 30px 0;
+}
+
+.accessory-buttons::-webkit-scrollbar {
+  display: none;
 }
 
 .accessory-btn {
-  padding: 10px 20px;
+  position: relative;
+  padding: 5px;
+  min-width: fit-content;
+  text-wrap: nowrap;
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
   border: 2px solid #008020;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 16px;
   transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .accessory-btn:hover {
@@ -343,6 +332,26 @@ main #wallet-status {
   background: linear-gradient(90deg, #00ff40, #008020);
   border-color: #00ff40;
   box-shadow: 0 0 10px rgba(0, 255, 64, 0.5);
+}
+
+.accessory-btn img{
+  position: absolute;
+  right: -20px;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  display: flex;
+  align-self: center;
+  justify-self: center;
+  opacity: 0.6;
+  /*z-index: 1;*/
+}
+
+.accessory-btn span{
+  position: relative;
+  color: #000000;
+  z-index: 1;
 }
 
 .nft-display {
@@ -409,72 +418,148 @@ main #wallet-status {
   margin-top: 10px;
 }
 
+
+.footer-content{
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+
+.footer .creator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer .creator div{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 10px;
+  background-color: #000000BD;
+}
+
+.footer .creator h3{
+  color: #FFFFFF;
+}
+
+.footer .credit{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+}
+
+.footer .credit .credit-card{
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 10px 10px 10px;
+}
+
+.footer .credit .credit-card a{
+  text-decoration: none;
+  color: #FFFFFF;
+}
+
+.footer .credit .credit-card .head{
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 25px;
+  font-weight: bold;
+  color: #00ff40;
+}
+
+.footer .slime-tag{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.footer .slime-tag img{
+  width: 200px;
+}
+
+.footer .slime-tag .slime-social{
+  display: flex;
+  gap: 20px;
+}
+
+.footer .slime-tag .slime-social img{
+  width: 30px;
+}
+
+.footer .copyright{
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+
+
 /* Responsive styles */
 @media (max-width: 768px) {
   header {
     padding: 20px 10px;
   }
-
+  
   header h1 {
     font-size: 3rem;
   }
-
+  
   main {
     padding: 20px 10px;
   }
-
+  
   .wallet-section h2,
   .nft-section h2,
   .overlay-section h2 {
     font-size: 2rem;
   }
-
+  
   .nft-list {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
-
+  
   .nft-display {
     max-width: 300px;
     height: 300px;
   }
-
-  .accessory-buttons {
-    flex-wrap: wrap;
-  }
-
+  
   .accessory-btn {
-    padding: 8px 15px;
+    padding: 10px;
     font-size: 0.9rem;
   }
 }
 
 @media (max-width: 480px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
   header h1 {
     font-size: 2.5rem;
   }
-
+  
   .wallet-section h2,
   .nft-section h2,
   .overlay-section h2 {
     font-size: 1.5rem;
   }
-
-  .btn {
-    padding: 10px 20px;
-    font-size: 1rem;
-  }
-
+  
   .nft-list {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
-
+  
   .nft-display {
     max-width: 250px;
     height: 250px;
-  }
-
-  .accessory-btn {
-    padding: 6px 12px;
-    font-size: 0.8rem;
   }
 }
