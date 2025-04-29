@@ -106,32 +106,127 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // Canvas setup
+                  // Canvas setup
       console.log('Setting up canvas listeners');
       const canvas = document.getElementById('nft-canvas');
       if (canvas) {
         const ctx = canvas.getContext('2d');
         let isDragging = false;
         let overlayX = 0, overlayY = 0;
-        let overlayWidth = 0, overlayHeight = 0; // Will be set based on NFT size
-        let scaleFactor = 0.5; // Initial overlay size: 50% of NFT size
+        let overlayWidth = 0, overlayHeight = 0;
+        let renderWidth = 0, renderHeight = 0;
+        let dragOffsetX = 0, dragOffsetY = 0;
+        let lastTouchDistance = 0;
+        let isPinching = false;
+
+        function getCanvasScale() {
+          const scaleX = canvas.width / canvas.clientWidth;
+          const scaleY = canvas.height / canvas.clientHeight;
+          console.log(`Canvas scale factors - ScaleX: ${scaleX}, ScaleY: ${scaleY}`);
+          return { scaleX, scaleY };
+        }
+
+        function isOverOverlay(x, y) {
+          const inside = x >= overlayX && x <= overlayX + overlayWidth && y >= overlayY && y <= overlayY + overlayHeight;
+          console.log(`isOverOverlay check - Mouse: (${x}, ${y}), Overlay: (${overlayX}, ${overlayY}) to (${overlayX + overlayWidth}, ${overlayY + overlayHeight}), Inside: ${inside}`);
+          return inside;
+        }
 
         canvas.addEventListener('mousedown', (e) => {
-          isDragging = true;
-          updateOverlayPosition(e);
-        });
-        canvas.addEventListener('mousemove', (e) => {
-          if (isDragging) updateOverlayPosition(e);
-        });
-        canvas.addEventListener('mouseup', () => { isDragging = false; });
-        canvas.addEventListener('mouseout', () => { isDragging = false; });
-        // Add mouse wheel listener for resizing
-        canvas.addEventListener('wheel', (e) => {
           e.preventDefault();
-          scaleFactor += e.deltaY > 0 ? -0.02 : 0.02; // Scroll down to shrink, up to grow
-          scaleFactor = Math.max(0.1, Math.min(scaleFactor, 1)); // Limit scale between 10% and 100%
-          console.log(`Overlay scale factor adjusted to: ${scaleFactor}`);
+          e.stopPropagation();
+          const rect = canvas.getBoundingClientRect();
+          const { scaleX, scaleY } = getCanvasScale();
+          const mouseX = (e.clientX - rect.left) * scaleX;
+          const mouseY = (e.clientY - rect.top) * scaleY;
+          console.log(`Mouse down - Raw client: (${e.clientX}, ${e.clientY}), Canvas rect: (${rect.left}, ${rect.top}), Adjusted: (${mouseX}, ${mouseY})`);
+
+          if (isOverOverlay(mouseX, mouseY)) {
+            isDragging = true;
+            dragOffsetX = mouseX - overlayX;
+            dragOffsetY = mouseY - overlayY;
+            console.log(`Dragging started - Offset: (${dragOffsetX}, ${dragOffsetY})`);
+          } else {
+            console.log('Click outside overlay');
+          }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (isDragging) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const { scaleX, scaleY } = getCanvasScale();
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            const mouseY = (e.clientY - rect.top) * scaleY;
+            overlayX = mouseX - dragOffsetX;
+            overlayY = mouseY - dragOffsetY;
+            console.log(`Dragging - New position: (${overlayX}, ${overlayY})`);
+            drawCanvas();
+          }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log(`Mouse up - isDragging: ${isDragging}`);
+          isDragging = false;
           drawCanvas();
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          const rect = canvas.getBoundingClientRect();
+          const { scaleX, scaleY } = getCanvasScale();
+          const touches = e.touches;
+          if (touches.length === 1) {
+            const touchX = (touches[0].clientX - rect.left) * scaleX;
+            const touchY = (touches[0].clientY - rect.top) * scaleY;
+            if (isOverOverlay(touchX, touchY)) {
+              isDragging = true;
+              dragOffsetX = touchX - overlayX;
+              dragOffsetY = touchY - overlayY;
+              console.log('Touch dragging started');
+            }
+          } else if (touches.length === 2) {
+            isPinching = true;
+            isDragging = false;
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            lastTouchDistance = Math.sqrt(dx * dx + dy * dy);
+            console.log('Pinch-to-zoom started');
+          }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          const rect = canvas.getBoundingClientRect();
+          const { scaleX, scaleY } = getCanvasScale();
+          const touches = e.touches;
+          if (isDragging && touches.length === 1) {
+            const touchX = (touches[0].clientX - rect.left) * scaleX;
+            const touchY = (touches[0].clientY - rect.top) * scaleY;
+            overlayX = touchX - dragOffsetX;
+            overlayY = touchY - dragOffsetY;
+            drawCanvas();
+          } else if (isPinching && touches.length === 2) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            const currentDistance = Math.sqrt(dx * dx + dy * dy);
+            if (lastTouchDistance > 0) {
+              const scaleFactor = Math.max(0.1, Math.min(currentDistance / lastTouchDistance, 1));
+              drawCanvas();
+              console.log(`Pinch-to-zoom - New scaleFactor: ${scaleFactor}`);
+            }
+            lastTouchDistance = currentDistance;
+          }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          isDragging = false;
+          isPinching = false;
+          lastTouchDistance = 0;
+          console.log('Touch ended');
         });
 
         window.drawCanvas = function () {
@@ -142,28 +237,40 @@ document.addEventListener('DOMContentLoaded', () => {
           const nftImg = new Image();
           const overlayImg = document.getElementById('overlay-img');
           nftImg.src = selectedNFT;
-          nftImg.crossOrigin = 'Anonymous'; // Handle CORS if needed
+          nftImg.crossOrigin = 'Anonymous';
           nftImg.onload = () => {
+            console.log('NFT image loaded, setting canvas size to:', nftImg.width, nftImg.height);
             canvas.width = nftImg.width;
             canvas.height = nftImg.height;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(nftImg, 0, 0);
-            if (overlayImg.src) {
+            if (overlayImg.src && overlayImg.src !== window.location.href) {
+              console.log('Overlay image source:', overlayImg.src);
               const overlay = new Image();
-              overlay.crossOrigin = 'Anonymous'; // Handle CORS if needed
+              overlay.crossOrigin = 'Anonymous';
               overlay.src = overlayImg.src;
               overlay.onload = () => {
-                // Scale overlay relative to NFT size
-                overlayWidth = nftImg.width * scaleFactor;
-                overlayHeight = nftImg.height * scaleFactor;
-                console.log('Overlay image loaded, drawing on canvas');
-                ctx.drawImage(overlay, overlayX, overlayY, overlayWidth, overlayHeight);
+                const filename = overlay.src.split('/').pop();
+                console.log('Overlay filename:', filename);
+
+                // Rendering size (match original GitHub size: 200px on screen)
+                renderWidth = 1000; // 200px on screen with 5x scaling
+                renderHeight = renderWidth; // Maintain 1:1 aspect ratio (image is 3000x3000)
+                console.log(`Rendering overlay - File: ${filename}, Render size: (${renderWidth}, ${renderHeight})`);
+
+                // Set hitbox size to match render size
+                overlayWidth = renderWidth;
+                overlayHeight = renderHeight;
+                console.log(`Hitbox size - File: ${filename}, Scaled size: (${overlayWidth}, ${overlayHeight})`);
+
+                console.log(`Drawing overlay at position: (${overlayX}, ${overlayY})`);
+                ctx.drawImage(overlay, overlayX, overlayY, renderWidth, renderHeight);
               };
               overlay.onerror = () => {
                 console.error('Failed to load overlay image:', overlay.src);
               };
             } else {
-              console.log('No overlay image selected');
+              console.log('No valid overlay image selected');
             }
           };
           nftImg.onerror = () => {
@@ -173,8 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.updateOverlayPosition = function (e) {
           const rect = canvas.getBoundingClientRect();
-          overlayX = e.clientX - rect.left - overlayWidth / 2;
-          overlayY = e.clientY - rect.top - overlayHeight / 2;
+          const { scaleX, scaleY } = getCanvasScale();
+          overlayX = (e.clientX - rect.left) * scaleX - dragOffsetX;
+          overlayY = (e.clientY - rect.top) * scaleY - dragOffsetY;
           drawCanvas();
         };
       }
