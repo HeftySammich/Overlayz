@@ -360,6 +360,17 @@ main #wallet-status {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
+/* Ensure the Konva stage takes full size of container */
+.nft-display .konvajs-content {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.nft-display .konvajs-content canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .canvas-placeholder {
   position: absolute;
   top: 50%;

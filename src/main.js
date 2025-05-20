@@ -1,7 +1,11 @@
 import { DAppConnector } from '@hashgraph/hedera-wallet-connect';
 import { LedgerId } from '@hashgraph/sdk';
+import Konva from 'konva';
 
 let dAppConnector;
+let stage, layer, overlayImage, transformer;
+let selectedNFT = null;
+let backgroundImage = null;
 
 // Wait for DOM to load
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ['hedera:mainnet']
       );
 
-      console.log('Initializing  DAppConnector');
+      console.log('Initializing DAppConnector');
       await dAppConnector.init({ logger: 'error' });
       console.log('WalletConnect initialized successfully');
 
@@ -73,7 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (file) {
             const overlayImg = document.getElementById('overlay-img');
             overlayImg.src = URL.createObjectURL(file);
-            drawCanvas();
+            console.log('Overlay image set from file upload:', overlayImg.src);
+            updateOverlayImage(overlayImg.src);
           }
         });
       }
@@ -84,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const button = document.getElementById(id);
         if (button) {
           button.addEventListener('click', () => {
-            const overlayImg = document.getElementById('overlay-img');
             const overlays = [
               '/assets/arts/Good_Morning._Overlay.png', // overlay1: Good Morning
               '/assets/arts/Mic.Overlay.png',          // overlay2: Microphone
@@ -96,9 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ];
             // Only set overlayImg.src for buttons overlay1 to overlay6
             if (index < 6) {
+              const overlayImg = document.getElementById('overlay-img');
               overlayImg.src = overlays[index];
               console.log(`Overlay button ${id} clicked, setting overlay to ${overlays[index]}`);
-              drawCanvas();
+              updateOverlayImage(overlays[index]);
             }
           });
         } else {
@@ -106,205 +111,368 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-                  // Canvas setup
-      console.log('Setting up canvas listeners');
-      const canvas = document.getElementById('nft-canvas');
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        let isDragging = false;
-        let overlayX = 0, overlayY = 0;
-        let overlayWidth = 0, overlayHeight = 0;
-        let renderWidth = 0, renderHeight = 0;
-        let dragOffsetX = 0, dragOffsetY = 0;
-        let lastTouchDistance = 0;
-        let isPinching = false;
-
-        function getCanvasScale() {
-          const scaleX = canvas.width / canvas.clientWidth;
-          const scaleY = canvas.height / canvas.clientHeight;
-          console.log(`Canvas scale factors - ScaleX: ${scaleX}, ScaleY: ${scaleY}`);
-          return { scaleX, scaleY };
-        }
-
-        function isOverOverlay(x, y) {
-          const inside = x >= overlayX && x <= overlayX + overlayWidth && y >= overlayY && y <= overlayY + overlayHeight;
-          console.log(`isOverOverlay check - Mouse: (${x}, ${y}), Overlay: (${overlayX}, ${overlayY}) to (${overlayX + overlayWidth}, ${overlayY + overlayHeight}), Inside: ${inside}`);
-          return inside;
-        }
-
-        canvas.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const rect = canvas.getBoundingClientRect();
-          const { scaleX, scaleY } = getCanvasScale();
-          const mouseX = (e.clientX - rect.left) * scaleX;
-          const mouseY = (e.clientY - rect.top) * scaleY;
-          console.log(`Mouse down - Raw client: (${e.clientX}, ${e.clientY}), Canvas rect: (${rect.left}, ${rect.top}), Adjusted: (${mouseX}, ${mouseY})`);
-
-          if (isOverOverlay(mouseX, mouseY)) {
-            isDragging = true;
-            dragOffsetX = mouseX - overlayX;
-            dragOffsetY = mouseY - overlayY;
-            console.log(`Dragging started - Offset: (${dragOffsetX}, ${dragOffsetY})`);
-          } else {
-            console.log('Click outside overlay');
-          }
-        });
-
-        document.addEventListener('mousemove', (e) => {
-          if (isDragging) {
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const { scaleX, scaleY } = getCanvasScale();
-            const mouseX = (e.clientX - rect.left) * scaleX;
-            const mouseY = (e.clientY - rect.top) * scaleY;
-            overlayX = mouseX - dragOffsetX;
-            overlayY = mouseY - dragOffsetY;
-            console.log(`Dragging - New position: (${overlayX}, ${overlayY})`);
-            drawCanvas();
-          }
-        });
-
-        document.addEventListener('mouseup', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log(`Mouse up - isDragging: ${isDragging}`);
-          isDragging = false;
-          drawCanvas();
-        });
-
-        canvas.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          const rect = canvas.getBoundingClientRect();
-          const { scaleX, scaleY } = getCanvasScale();
-          const touches = e.touches;
-          if (touches.length === 1) {
-            const touchX = (touches[0].clientX - rect.left) * scaleX;
-            const touchY = (touches[0].clientY - rect.top) * scaleY;
-            if (isOverOverlay(touchX, touchY)) {
-              isDragging = true;
-              dragOffsetX = touchX - overlayX;
-              dragOffsetY = touchY - overlayY;
-              console.log('Touch dragging started');
-            }
-          } else if (touches.length === 2) {
-            isPinching = true;
-            isDragging = false;
-            const dx = touches[0].clientX - touches[1].clientX;
-            const dy = touches[0].clientY - touches[1].clientY;
-            lastTouchDistance = Math.sqrt(dx * dx + dy * dy);
-            console.log('Pinch-to-zoom started');
-          }
-        });
-
-        canvas.addEventListener('touchmove', (e) => {
-          e.preventDefault();
-          const rect = canvas.getBoundingClientRect();
-          const { scaleX, scaleY } = getCanvasScale();
-          const touches = e.touches;
-          if (isDragging && touches.length === 1) {
-            const touchX = (touches[0].clientX - rect.left) * scaleX;
-            const touchY = (touches[0].clientY - rect.top) * scaleY;
-            overlayX = touchX - dragOffsetX;
-            overlayY = touchY - dragOffsetY;
-            drawCanvas();
-          } else if (isPinching && touches.length === 2) {
-            const dx = touches[0].clientX - touches[1].clientX;
-            const dy = touches[0].clientY - touches[1].clientY;
-            const currentDistance = Math.sqrt(dx * dx + dy * dy);
-            if (lastTouchDistance > 0) {
-              const scaleFactor = Math.max(0.1, Math.min(currentDistance / lastTouchDistance, 1));
-              drawCanvas();
-              console.log(`Pinch-to-zoom - New scaleFactor: ${scaleFactor}`);
-            }
-            lastTouchDistance = currentDistance;
-          }
-        });
-
-        canvas.addEventListener('touchend', (e) => {
-          e.preventDefault();
-          isDragging = false;
-          isPinching = false;
-          lastTouchDistance = 0;
-          console.log('Touch ended');
-        });
-
-        window.drawCanvas = function () {
-          if (!selectedNFT) {
-            console.log('No NFT selected for canvas');
-            return;
-          }
-          const nftImg = new Image();
-          const overlayImg = document.getElementById('overlay-img');
-          nftImg.src = selectedNFT;
-          nftImg.crossOrigin = 'Anonymous';
-          nftImg.onload = () => {
-            console.log('NFT image loaded, setting canvas size to:', nftImg.width, nftImg.height);
-            canvas.width = nftImg.width;
-            canvas.height = nftImg.height;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(nftImg, 0, 0);
-            if (overlayImg.src && overlayImg.src !== window.location.href) {
-              console.log('Overlay image source:', overlayImg.src);
-              const overlay = new Image();
-              overlay.crossOrigin = 'Anonymous';
-              overlay.src = overlayImg.src;
-              overlay.onload = () => {
-                const filename = overlay.src.split('/').pop();
-                console.log('Overlay filename:', filename);
-
-                // Rendering size (match original GitHub size: 200px on screen)
-                renderWidth = 1000; // 200px on screen with 5x scaling
-                renderHeight = renderWidth; // Maintain 1:1 aspect ratio (image is 3000x3000)
-                console.log(`Rendering overlay - File: ${filename}, Render size: (${renderWidth}, ${renderHeight})`);
-
-                // Set hitbox size to match render size
-                overlayWidth = renderWidth;
-                overlayHeight = renderHeight;
-                console.log(`Hitbox size - File: ${filename}, Scaled size: (${overlayWidth}, ${overlayHeight})`);
-
-                console.log(`Drawing overlay at position: (${overlayX}, ${overlayY})`);
-                ctx.drawImage(overlay, overlayX, overlayY, renderWidth, renderHeight);
-              };
-              overlay.onerror = () => {
-                console.error('Failed to load overlay image:', overlay.src);
-              };
-            } else {
-              console.log('No valid overlay image selected');
-            }
-          };
-          nftImg.onerror = () => {
-            console.error('Failed to load NFT image:', nftImg.src);
-          };
-        };
-
-        window.updateOverlayPosition = function (e) {
-          const rect = canvas.getBoundingClientRect();
-          const { scaleX, scaleY } = getCanvasScale();
-          overlayX = (e.clientX - rect.left) * scaleX - dragOffsetX;
-          overlayY = (e.clientY - rect.top) * scaleY - dragOffsetY;
-          drawCanvas();
-        };
-      }
-
       // Apply overlay
       console.log('Setting up apply-overlay listener');
       const applyButton = document.getElementById('apply-overlay');
       if (applyButton) {
         applyButton.addEventListener('click', () => {
-          if (selectedNFT) {
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL();
-            link.download = 'overlayed-nft.png';
-            link.click();
+          if (selectedNFT && stage) {
+            console.log('Apply overlay button clicked');
+            
+            // Temporarily hide transformer to avoid it showing in the export
+            const transformerVisible = transformer.visible();
+            transformer.visible(false);
+            layer.draw();
+            
+            // Load original NFT to get its dimensions
+            const nftImg = new Image();
+            nftImg.crossOrigin = 'Anonymous';
+            nftImg.src = selectedNFT;
+            
+            nftImg.onload = () => {
+              console.log('Original NFT dimensions for export:', nftImg.width, nftImg.height);
+              
+              if (overlayImage) {
+                // Create a temporary canvas for the final image
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Set canvas to original NFT dimensions
+                tempCanvas.width = nftImg.width;
+                tempCanvas.height = nftImg.height;
+                
+                // Draw the original NFT as background
+                tempCtx.drawImage(nftImg, 0, 0, nftImg.width, nftImg.height);
+                
+                // Get the current stage dimensions
+                const stageWidth = stage.width();
+                const stageHeight = stage.height();
+                
+                // Calculate the scale ratio between original image and stage
+                const scaleRatioX = nftImg.width / stageWidth;
+                const scaleRatioY = nftImg.height / stageHeight;
+                
+                console.log('Stage dimensions:', stageWidth, stageHeight);
+                console.log('Scale ratios:', scaleRatioX, scaleRatioY);
+                
+                // Get overlay properties directly from Konva
+                const overlayWidth = overlayImage.width() * overlayImage.scaleX();
+                const overlayHeight = overlayImage.height() * overlayImage.scaleY();
+                const overlayX = overlayImage.x();
+                const overlayY = overlayImage.y();
+                const rotation = overlayImage.rotation();
+                
+                console.log('Overlay properties:', {
+                  x: overlayX,
+                  y: overlayY,
+                  width: overlayWidth,
+                  height: overlayHeight,
+                  rotation: rotation
+                });
+                
+                // Calculate center point of overlay in stage coordinates
+                const centerX = overlayX + (overlayWidth / 2);
+                const centerY = overlayY + (overlayHeight / 2);
+                
+                // Scale to output dimensions
+                const scaledCenterX = centerX * scaleRatioX;
+                const scaledCenterY = centerY * scaleRatioY;
+                const scaledWidth = overlayWidth * scaleRatioX;
+                const scaledHeight = overlayHeight * scaleRatioY;
+                
+                console.log('Scaled overlay center:', scaledCenterX, scaledCenterY);
+                console.log('Scaled overlay dimensions:', scaledWidth, scaledHeight);
+                
+                // Create a new image for the overlay
+                const overlayImg = new Image();
+                overlayImg.crossOrigin = 'Anonymous';
+                overlayImg.src = overlayImage.image().src;
+                
+                overlayImg.onload = () => {
+                  // Apply transformations to draw the overlay
+                  tempCtx.save();
+                  
+                  // Move to the center point of where the overlay should be
+                  tempCtx.translate(scaledCenterX, scaledCenterY);
+                  
+                  // Apply rotation
+                  tempCtx.rotate(rotation * Math.PI / 180);
+                  
+                  // Draw the overlay centered at the rotation point
+                  tempCtx.drawImage(
+                    overlayImg,
+                    -scaledWidth / 2,  // Center the overlay horizontally
+                    -scaledHeight / 2, // Center the overlay vertically
+                    scaledWidth,
+                    scaledHeight
+                  );
+                  
+                  tempCtx.restore();
+                  
+                  // Export the final canvas
+                  const dataURL = tempCanvas.toDataURL('image/png');
+                  console.log('Final canvas exported at original NFT size');
+                  
+                  // Create download link
+                  const link = document.createElement('a');
+                  link.href = dataURL;
+                  link.download = 'overlayed-nft.png';
+                  link.click();
+                  console.log('Download initiated at full resolution');
+                  
+                  // Restore transformer visibility
+                  transformer.visible(transformerVisible);
+                  layer.draw();
+                };
+                
+                overlayImg.onerror = () => {
+                  console.error('Failed to load overlay image for export');
+                  alert('Failed to export image. Please try again.');
+                  tempCtx.restore();
+                  transformer.visible(transformerVisible);
+                  layer.draw();
+                };
+              } else {
+                // No overlay, just export the NFT
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = nftImg.width;
+                tempCanvas.height = nftImg.height;
+                tempCtx.drawImage(nftImg, 0, 0, nftImg.width, nftImg.height);
+                
+                const dataURL = tempCanvas.toDataURL('image/png');
+                
+                // Create download link
+                const link = document.createElement('a');
+                link.href = dataURL;
+                link.download = 'nft.png';
+                link.click();
+                
+                // Restore transformer visibility
+                transformer.visible(transformerVisible);
+                layer.draw();
+              }
+            };
+            
+            nftImg.onerror = () => {
+              console.error('Failed to load NFT for export');
+              alert('Failed to export image. Please try again.');
+              transformer.visible(transformerVisible);
+              layer.draw();
+            };
           } else {
             alert('Select an NFT first!');
           }
         });
       }
+
+      // Initialize Konva stage
+      initKonvaStage();
+      
     } catch (error) {
       console.error('Wallet init error:', error);
     }
+  }
+
+  // Initialize Konva stage
+  function initKonvaStage() {
+    console.log('Initializing Konva stage');
+    const container = document.getElementById('nft-display');
+    if (!container) {
+      console.error('nft-display container not found');
+      return;
+    }
+
+    // Clear any existing content
+    container.innerHTML = '';
+    
+    // Create Konva stage
+    stage = new Konva.Stage({
+      container: 'nft-display',
+      width: 400,
+      height: 400,
+    });
+    
+    console.log('Konva stage created with dimensions:', stage.width(), stage.height());
+
+    // Create layer
+    layer = new Konva.Layer();
+    stage.add(layer);
+    
+    // Create transformer
+    transformer = new Konva.Transformer({
+      nodes: [],
+      enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+      rotationSnaps: [0, 90, 180, 270],
+      borderStroke: '#00ff40',
+      borderStrokeWidth: 2,
+      anchorStroke: '#00ff40',
+      anchorFill: '#000',
+      anchorSize: 10,
+      rotateEnabled: true,
+      resizeEnabled: true,
+    });
+    
+    layer.add(transformer);
+    
+    console.log('Konva transformer added to layer');
+    
+    // Add stage click handler to deselect
+    stage.on('click tap', function(e) {
+      // If we clicked on the stage but not on the transformer or overlay
+      if (e.target === stage) {
+        console.log('Stage clicked, deselecting transformer');
+        transformer.nodes([]);
+        layer.draw();
+      }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+      stage.width(containerWidth);
+      stage.height(containerHeight);
+      stage.draw();
+      console.log('Resized stage to:', containerWidth, containerHeight);
+    });
+    
+    // Initial resize
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    stage.width(containerWidth);
+    stage.height(containerHeight);
+    
+    console.log('Konva stage initialized with size:', containerWidth, containerHeight);
+  }
+
+  // Draw NFT background
+  function drawNFTBackground() {
+    if (!selectedNFT || !stage) {
+      console.log('No NFT selected or stage not initialized');
+      return;
+    }
+
+    console.log('Drawing NFT background:', selectedNFT);
+
+    // Remove previous background if exists
+    if (backgroundImage) {
+      backgroundImage.remove();
+      backgroundImage = null;
+    }
+
+    // Load NFT image
+    const nftImg = new Image();
+    nftImg.src = selectedNFT;
+    nftImg.crossOrigin = 'Anonymous';
+    
+    nftImg.onload = () => {
+      console.log('NFT image loaded, dimensions:', nftImg.width, nftImg.height);
+      
+      // Create background image with NFT
+      backgroundImage = new Konva.Image({
+        image: nftImg,
+        width: stage.width(),
+        height: stage.height(),
+        x: 0,
+        y: 0,
+      });
+      
+      layer.add(backgroundImage);
+      backgroundImage.moveToBottom();
+      layer.draw();
+      console.log('NFT background image added to layer');
+    };
+    
+    nftImg.onerror = () => {
+      console.error('Failed to load NFT image:', nftImg.src);
+    };
+  }
+
+  // Update overlay image
+  function updateOverlayImage(src) {
+    if (!selectedNFT || !stage) {
+      console.log('No NFT selected or stage not initialized');
+      return;
+    }
+
+    console.log('Updating overlay image:', src);
+
+    // Remove previous overlay if exists
+    if (overlayImage) {
+      overlayImage.remove();
+      overlayImage = null;
+    }
+
+    if (!src || src === window.location.href) {
+      console.log('No valid overlay source');
+      layer.draw();
+      return;
+    }
+
+    // Load overlay image
+    const overlay = new Image();
+    overlay.crossOrigin = 'Anonymous';
+    overlay.src = src;
+    
+    overlay.onload = () => {
+      console.log('Overlay image loaded, dimensions:', overlay.width, overlay.height);
+      
+      // Calculate size to maintain aspect ratio
+      let overlayWidth = stage.width() / 2;
+      let overlayHeight = (overlay.height / overlay.width) * overlayWidth;
+      
+      // Create overlay with Konva
+      overlayImage = new Konva.Image({
+        image: overlay,
+        width: overlayWidth,
+        height: overlayHeight,
+        x: stage.width() / 4,
+        y: stage.height() / 4,
+        draggable: true,
+      });
+      
+      console.log('Konva overlay image created with dimensions:', overlayWidth, overlayHeight);
+      
+      // Add overlay to layer
+      layer.add(overlayImage);
+      
+      // Add click handler to select overlay
+      overlayImage.on('click tap', function(e) {
+        console.log('Overlay clicked/tapped');
+        // Prevent event bubbling
+        e.cancelBubble = true;
+        
+        // Select this overlay with transformer
+        transformer.nodes([overlayImage]);
+        layer.draw();
+      });
+      
+      // Add drag handlers for better mobile experience
+      overlayImage.on('dragstart', function() {
+        console.log('Drag started on overlay');
+        transformer.nodes([overlayImage]);
+      });
+      
+      overlayImage.on('dragmove', function() {
+        console.log('Dragging overlay, position:', overlayImage.x(), overlayImage.y());
+      });
+      
+      overlayImage.on('dragend', function() {
+        console.log('Drag ended on overlay');
+        layer.draw();
+      });
+      
+      // Set initial transformer
+      transformer.nodes([overlayImage]);
+      layer.draw();
+      
+      console.log('Overlay added and transformer attached');
+    };
+    
+    overlay.onerror = () => {
+      console.error('Failed to load overlay image:', src);
+    };
   }
 
   // Handle new session
@@ -426,14 +594,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Select NFT for overlay
-  let selectedNFT = null;
   window.selectNFT = function (img) {
+    console.log('NFT selected:', img.src);
     selectedNFT = img.src;
     document.querySelectorAll('.nft-item').forEach(item => item.classList.remove('selected'));
     img.parentElement.classList.add('selected');
     const canvasPlaceholder = document.getElementById('nft-display')?.querySelector('.canvas-placeholder');
     if (canvasPlaceholder) canvasPlaceholder.style.display = 'none';
-    drawCanvas();
+    
+    // Draw NFT background
+    drawNFTBackground();
+    
+    // Check if there's already an overlay image selected
+    const overlayImg = document.getElementById('overlay-img');
+    if (overlayImg && overlayImg.src && overlayImg.src !== window.location.href) {
+      updateOverlayImage(overlayImg.src);
+    }
   };
 
   // Start WalletConnect initialization
