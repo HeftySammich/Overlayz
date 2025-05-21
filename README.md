@@ -28,6 +28,9 @@ Overlayz is a dApp for Hedera that allows users to apply overlays and accessorie
      - `/assets/overlays/arts/`
      - `/assets/overlays/fonts`
      - `/assets/overlays/icon/`
+    
+4. **Connect to Hedera**
+   - Replace ' 
 
 4. **Configure your Adobe Fonts (optional)**
    - Replace `YOUR_ADOBE_FONTS_KIT_ID` in index.html with your actual kit ID
@@ -65,6 +68,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Credits
 
-- Inspired by [coine.io/overlay-builder](https://coine.io/overlay-builder)
+- Built by SLIME
 - Created for the Hedera community
-- Shout out to Spaghettaaay.ħ whose initial idea brought this to life
+- Shout out to Spagħettaaay.ħbar whose initial idea brought this to life
