@@ -6,6 +6,10 @@ let dAppConnector;
 let stage, layer, overlayImage, transformer;
 let selectedNFT = null;
 let backgroundImage = null;
+let currentNFTPage = 1;
+const nftsPerPage = 10; // Show 10 NFTs initially
+let allNFTs = [];
+let isLoadingMoreNFTs = false;
 
 // Wait for DOM to load
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const metadata = {
         name: 'Overlayz',
         description: 'NFT Overlay Tool for Hedera',
-        url: 'https://hederanftoverlayz.vercel.app',
+        url: 'https://overlayz.xyz',
         icons: ['/assets/icon/Overlayz_App_Icon.png'],
       };
 
@@ -525,72 +529,141 @@ document.addEventListener('DOMContentLoaded', () => {
   async function fetchNFTs(accountId) {
     console.log('Fetching NFTs for account:', accountId);
     try {
+      const nftList = document.getElementById('nft-list');
+      if (nftList) nftList.innerHTML = '<p class="nft-placeholder">Loading NFTs...</p>';
+      
+      // Fetch all NFTs first
       const response = await fetch(`https://mainnet.mirrornode.hedera.com/api/v1/accounts/${accountId}/nfts`);
       const data = await response.json();
-      const nfts = data.nfts || [];
-      const nftList = document.getElementById('nft-list');
-      if (nftList) {
-        nftList.innerHTML = await Promise.all(nfts.map(async nft => {
-          let imageUrl = 'https://via.placeholder.com/150';
-          if (nft.metadata) {
-            // Decode the base64 metadata
-            const metadataStr = atob(nft.metadata);
-            console.log(`Decoded metadata for NFT ${nft.serial_number}:`, metadataStr);
-            // Check if metadataStr is an IPFS URL
-            if (metadataStr.startsWith('ipfs://')) {
-              const ipfsHash = metadataStr.replace('ipfs://', '');
-              const metadataUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
-              console.log(`Fetching metadata from: ${metadataUrl}`);
-              try {
-                // Fetch the metadata JSON from the IPFS URL
-                const metadataResponse = await fetch(metadataUrl);
-                const metadata = await metadataResponse.json();
-                console.log(`Metadata for NFT ${nft.serial_number}:`, metadata);
-                if (metadata.image) {
-                  // Handle the image URL from the metadata
-                  if (metadata.image.startsWith('ipfs://')) {
-                    const imageHash = metadata.image.replace('ipfs://', '');
-                    imageUrl = `https://ipfs.io/ipfs/${imageHash}`;
-                  } else {
-                    imageUrl = metadata.image;
-                  }
-                  console.log(`Final image URL for NFT ${nft.serial_number}:`, imageUrl);
-                }
-              } catch (e) {
-                console.error(`Error fetching metadata from IPFS for NFT ${nft.serial_number}:`, e);
-              }
-            } else {
-              // If metadataStr isn't an IPFS URL, try parsing it as JSON
-              try {
-                const metadata = JSON.parse(metadataStr);
-                console.log(`Metadata for NFT ${nft.serial_number}:`, metadata);
-                if (metadata.image) {
-                  if (metadata.image.startsWith('ipfs://')) {
-                    const imageHash = metadata.image.replace('ipfs://', '');
-                    imageUrl = `https://ipfs.io/ipfs/${imageHash}`;
-                  } else {
-                    imageUrl = metadata.image;
-                  }
-                  console.log(`Final image URL for NFT ${nft.serial_number}:`, imageUrl);
-                }
-              } catch (e) {
-                console.error(`Metadata parse error for NFT ${nft.serial_number}:`, e);
-              }
-            }
-          }
-          return `
-            <div class="nft-item" data-serial="${nft.serial_number}">
-              <img src="${imageUrl}" alt="NFT" onclick="selectNFT(this)">
-              <p>Serial: ${nft.serial_number}</p>
-            </div>
-          `;
-        })).then(results => results.join(''));
-      }
+      allNFTs = data.nfts || [];
+      
+      // Display first page
+      displayNFTPage(1);
     } catch (error) {
       console.error('NFT fetch error:', error);
       const nftList = document.getElementById('nft-list');
       if (nftList) nftList.innerHTML = '<p class="nft-placeholder">Error fetching NFTs</p>';
     }
+  }
+
+  // New function to display a specific page of NFTs
+  async function displayNFTPage(page) {
+    const nftList = document.getElementById('nft-list');
+    if (!nftList) return;
+    
+    isLoadingMoreNFTs = true;
+    
+    // Calculate start and end indices
+    const startIdx = (page - 1) * nftsPerPage;
+    const endIdx = Math.min(startIdx + nftsPerPage, allNFTs.length);
+    
+    // Get NFTs for this page
+    const pageNFTs = allNFTs.slice(startIdx, endIdx);
+    
+    // If it's the first page, replace content
+    if (page === 1) {
+      nftList.innerHTML = '';
+    } else {
+      // Remove load more button if it exists
+      const existingLoadMoreBtn = document.getElementById('load-more-nfts');
+      if (existingLoadMoreBtn) {
+        existingLoadMoreBtn.remove();
+      }
+    }
+    
+    // Process and display NFTs
+    const nftElements = await Promise.all(pageNFTs.map(async nft => {
+      let imageUrl = 'https://via.placeholder.com/150';
+      if (nft.metadata) {
+        // Decode the base64 metadata
+        const metadataStr = atob(nft.metadata);
+        console.log(`Decoded metadata for NFT ${nft.serial_number}:`, metadataStr);
+        // Check if metadataStr is an IPFS URL
+        if (metadataStr.startsWith('ipfs://')) {
+          const ipfsHash = metadataStr.replace('ipfs://', '');
+          const metadataUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+          console.log(`Fetching metadata from: ${metadataUrl}`);
+          try {
+            // Fetch the metadata JSON from the IPFS URL
+            const metadataResponse = await fetch(metadataUrl);
+            const metadata = await metadataResponse.json();
+            console.log(`Metadata for NFT ${nft.serial_number}:`, metadata);
+            if (metadata.image) {
+              // Handle the image URL from the metadata
+              if (metadata.image.startsWith('ipfs://')) {
+                const imageHash = metadata.image.replace('ipfs://', '');
+                imageUrl = `https://ipfs.io/ipfs/${imageHash}`;
+              } else {
+                imageUrl = metadata.image;
+              }
+              console.log(`Final image URL for NFT ${nft.serial_number}:`, imageUrl);
+            }
+          } catch (e) {
+            console.error(`Error fetching metadata from IPFS for NFT ${nft.serial_number}:`, e);
+          }
+        } else {
+          // If metadataStr isn't an IPFS URL, try parsing it as JSON
+          try {
+            const metadata = JSON.parse(metadataStr);
+            console.log(`Metadata for NFT ${nft.serial_number}:`, metadata);
+            if (metadata.image) {
+              if (metadata.image.startsWith('ipfs://')) {
+                const imageHash = metadata.image.replace('ipfs://', '');
+                imageUrl = `https://ipfs.io/ipfs/${imageHash}`;
+              } else {
+                imageUrl = metadata.image;
+              }
+              console.log(`Final image URL for NFT ${nft.serial_number}:`, imageUrl);
+            }
+          } catch (e) {
+            console.error(`Metadata parse error for NFT ${nft.serial_number}:`, e);
+          }
+        }
+      }
+      return `
+        <div class="nft-item" data-serial="${nft.serial_number}">
+          <img src="${imageUrl}" alt="NFT" onerror="this.src='https://via.placeholder.com/150?text=NFT'" onclick="selectNFT(this)">
+          <p>Serial: ${nft.serial_number}</p>
+        </div>
+      `;
+    }));
+    
+    // Append new NFTs to the list
+    nftList.innerHTML += nftElements.join('');
+    
+    // Update current page
+    currentNFTPage = page;
+    
+    // Add "Load More" button if there are more NFTs
+    if (endIdx < allNFTs.length) {
+      // Create button container div
+      const loadMoreContainer = document.createElement('div');
+      loadMoreContainer.style.width = '100%';
+      loadMoreContainer.style.textAlign = 'center';
+      loadMoreContainer.style.margin = '20px 0';
+      loadMoreContainer.style.gridColumn = '1 / -1'; // Span all columns
+      
+      // Create button that matches your existing button style
+      const loadMoreButton = document.createElement('button');
+      loadMoreButton.id = 'load-more-nfts';
+      loadMoreButton.className = 'btn'; // Use your existing button class
+      loadMoreButton.textContent = 'Load More';
+      
+      // Add click event
+      loadMoreButton.addEventListener('click', () => {
+        if (!isLoadingMoreNFTs) {
+          displayNFTPage(currentNFTPage + 1);
+        }
+      });
+      
+      // Add button to container
+      loadMoreContainer.appendChild(loadMoreButton);
+      
+      // Add container to NFT list
+      nftList.appendChild(loadMoreContainer);
+    }
+    
+    isLoadingMoreNFTs = false;
   }
 
   // Select NFT for overlay
