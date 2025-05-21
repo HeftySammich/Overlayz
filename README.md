@@ -57,6 +57,10 @@ Overlayz is a dApp for Hedera that allows users to apply overlays and accessorie
 - Wallet Connect integration
 - Built for HashPack's dApp browser 
 
+## License
+
+- SLIME is free software. All files, unless explicitly stated otherwise, are public domain.
+
 ## Credits
 
 - Built by SLIME
