@@ -2,11 +2,13 @@
 
 Overlayz is a dApp for Hedera that allows users to apply overlays and accessories to their NFTs. It's designed to work within the HashPack wallet app and uses the Hedera Mirror Node API to fetch NFT data.
 
-## Features
+## How It Works
 
-- HashPack wallet integration
-- Wallet Connect integration
-- Built for HashPack's dApp browser 
+1. **Connect Wallet**: Connect your HashPack wallet to access your NFTs.
+2. **Select NFT**: View your collection and select an NFT to modify.
+3. **Apply Overlays**: Choose from various overlays.
+4. **Customize**: Move, rotate and resize the overlays to perfect the look.
+5. **Save**: Download the modified NFT image.
 
 ## Setup
 
@@ -49,13 +51,11 @@ Overlayz is a dApp for Hedera that allows users to apply overlays and accessorie
 - **API**: Hedera Mirror Node
 - **Image Manipulation**: Konva
 
-## How It Works
+## Features
 
-1. **Connect Wallet**: Users connect their HashPack wallet to access their NFTs.
-2. **Select NFT**: Users can view their collection and select an NFT to modify.
-3. **Apply Overlays**: Choose from various overlays.
-4. **Customize**: Move, rotate and resize the overlays to perfect the look.
-5. **Save**: Download the modified NFT image.
+- HashPack wallet integration
+- Wallet Connect integration
+- Built for HashPack's dApp browser 
 
 ## Credits
 
