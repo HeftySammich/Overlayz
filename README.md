@@ -59,7 +59,7 @@ Overlayz is a dApp for Hedera that allows users to apply overlays and accessorie
 
 ## License
 
-- SLIME is free software. All files, unless explicitly stated otherwise, are public domain.
+- Overlayz is a free tool. All files, unless explicitly stated otherwise, are public domain.
 
 ## Credits
 
