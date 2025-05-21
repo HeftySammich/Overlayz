@@ -49,7 +49,7 @@ Overlayz is a dApp for Hedera that allows users to apply overlays and accessorie
 - **Wallet Integration**: HashPack via HashConnect
 - **Blockchain**: Hedera (HBAR)
 - **API**: Hedera Mirror Node
-- **Image Manipulation**: HTML5 Canvas
+- **Image Manipulation**: Konva
 
 ## How It Works
 
