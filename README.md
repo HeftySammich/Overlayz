@@ -25,9 +25,9 @@ Overlayz is a dApp for Hedera that allows users to apply overlays and accessorie
 
 3. **Add overlay images**
    - Place your overlay images in the appropriate folders:
-     - `/assets/overlays/hats/`
-     - `/assets/overlays/glasses/`
-     - `/assets/overlays/accessories/`
+     - `/assets/overlays/arts/`
+     - `/assets/overlays/fonts`
+     - `/assets/overlays/icon/`
 
 4. **Configure your Adobe Fonts (optional)**
    - Replace `YOUR_ADOBE_FONTS_KIT_ID` in index.html with your actual kit ID
