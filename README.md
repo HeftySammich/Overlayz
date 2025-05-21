@@ -6,7 +6,7 @@ Overlayz is a dApp for Hedera that allows users to apply overlays and accessorie
 
 - HashPack wallet integration
 - Wallet Connect integration
-- Responsive design that works in HashPack's dApp browser
+- Built for HashPack's dApp browser 
 
 ## Setup
 
@@ -56,10 +56,6 @@ Overlayz is a dApp for Hedera that allows users to apply overlays and accessorie
 3. **Apply Overlays**: Choose from various overlays.
 4. **Customize**: Move, rotate and resize the overlays to perfect the look.
 5. **Save**: Download the modified NFT image.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Credits
 
