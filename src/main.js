@@ -217,12 +217,20 @@ document.addEventListener('DOMContentLoaded', () => {
                   const dataURL = tempCanvas.toDataURL('image/png');
                   console.log('Final canvas exported at original NFT size');
                   
-                  // Create download link
-                  const link = document.createElement('a');
-                  link.href = dataURL;
-                  link.download = 'overlayed-nft.png';
-                  link.click();
-                  console.log('Download initiated at full resolution');
+                  // Check if we're on mobile
+                  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                  
+                  if (isMobile) {
+                    // Create a modal to display the image for mobile
+                    showImageShareModal(dataURL);
+                  } else {
+                    // Desktop behavior - download the image
+                    const link = document.createElement('a');
+                    link.href = dataURL;
+                    link.download = 'overlayed-nft.png';
+                    link.click();
+                    console.log('Download initiated at full resolution');
+                  }
                   
                   // Restore transformer visibility
                   transformer.visible(transformerVisible);
@@ -246,11 +254,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const dataURL = tempCanvas.toDataURL('image/png');
                 
-                // Create download link
-                const link = document.createElement('a');
-                link.href = dataURL;
-                link.download = 'nft.png';
-                link.click();
+                // Check if we're on mobile
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                
+                if (isMobile) {
+                  // Create a modal to display the image for mobile
+                  showImageShareModal(dataURL);
+                } else {
+                  // Desktop behavior - download the image
+                  const link = document.createElement('a');
+                  link.href = dataURL;
+                  link.download = 'nft.png';
+                  link.click();
+                }
                 
                 // Restore transformer visibility
                 transformer.visible(transformerVisible);
@@ -688,3 +704,66 @@ document.addEventListener('DOMContentLoaded', () => {
   // Start WalletConnect initialization
   initializeWalletConnect();
 });
+
+// Add this function to create a mobile-friendly image share modal
+function showImageShareModal(imageDataURL) {
+  // Create modal container
+  const modalContainer = document.createElement('div');
+  modalContainer.style.position = 'fixed';
+  modalContainer.style.top = '0';
+  modalContainer.style.left = '0';
+  modalContainer.style.width = '100%';
+  modalContainer.style.height = '100%';
+  modalContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+  modalContainer.style.zIndex = '1000';
+  modalContainer.style.display = 'flex';
+  modalContainer.style.flexDirection = 'column';
+  modalContainer.style.alignItems = 'center';
+  modalContainer.style.justifyContent = 'center';
+  modalContainer.style.padding = '20px';
+  
+  // Create image element
+  const imageElement = document.createElement('img');
+  imageElement.src = imageDataURL;
+  imageElement.style.maxWidth = '90%';
+  imageElement.style.maxHeight = '70%';
+  imageElement.style.objectFit = 'contain';
+  imageElement.style.borderRadius = '8px';
+  imageElement.style.marginBottom = '20px';
+  
+  // Create instruction text
+  const instructionText = document.createElement('p');
+  instructionText.textContent = 'Press and hold the image to save to your Photos';
+  instructionText.style.color = 'white';
+  instructionText.style.marginBottom = '20px';
+  instructionText.style.textAlign = 'center';
+  
+  // Create close button
+  const closeButton = document.createElement('button');
+  closeButton.textContent = 'Close';
+  closeButton.className = 'btn';
+  closeButton.style.padding = '10px 20px';
+  closeButton.style.marginTop = '10px';
+  
+  // Add event listener to close modal
+  closeButton.addEventListener('click', () => {
+    document.body.removeChild(modalContainer);
+  });
+  
+  // Add elements to modal
+  modalContainer.appendChild(imageElement);
+  modalContainer.appendChild(instructionText);
+  modalContainer.appendChild(closeButton);
+  
+  // Add modal to body
+  document.body.appendChild(modalContainer);
+  
+  // Also add tap to close
+  modalContainer.addEventListener('click', (e) => {
+    if (e.target === modalContainer) {
+      document.body.removeChild(modalContainer);
+    }
+  });
+  
+  console.log('Image share modal displayed');
+}
