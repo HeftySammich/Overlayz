@@ -221,15 +221,32 @@ document.addEventListener('DOMContentLoaded', () => {
                   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                   
                   if (isMobile) {
-                    // Create a modal to display the image for mobile
-                    showImageShareModal(dataURL);
+                    // Use Web Share API if available
+                    if (navigator.share) {
+                      // Convert dataURL to Blob for sharing
+                      fetch(dataURL)
+                        .then(res => res.blob())
+                        .then(blob => {
+                          const file = new File([blob], 'overlayz-nft.png', { type: 'image/png' });
+                          navigator.share({
+                            title: 'My Overlayed NFT',
+                            files: [file]
+                          }).catch(error => {
+                            console.error('Error sharing:', error);
+                            // Fallback to modal if sharing fails
+                            showImageShareModal(dataURL);
+                          });
+                        });
+                    } else {
+                      // Fallback for browsers without Web Share API
+                      showImageShareModal(dataURL);
+                    }
                   } else {
                     // Desktop behavior - download the image
                     const link = document.createElement('a');
                     link.href = dataURL;
                     link.download = 'overlayed-nft.png';
                     link.click();
-                    console.log('Download initiated at full resolution');
                   }
                   
                   // Restore transformer visibility
@@ -731,28 +748,33 @@ function showImageShareModal(imageDataURL) {
   imageElement.style.borderRadius = '8px';
   imageElement.style.marginBottom = '20px';
   
-  // Create instruction text
-  const instructionText = document.createElement('p');
-  instructionText.textContent = 'Press and hold the image to save to your Photos';
-  instructionText.style.color = 'white';
-  instructionText.style.marginBottom = '20px';
-  instructionText.style.textAlign = 'center';
+  // Create save button
+  const saveButton = document.createElement('button');
+  saveButton.textContent = 'Save to Photos';
+  saveButton.className = 'btn';
+  saveButton.style.marginBottom = '10px';
+  saveButton.addEventListener('click', () => {
+    // Create an invisible link and click it
+    const link = document.createElement('a');
+    link.href = imageDataURL;
+    link.download = 'overlayz-nft.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
   
   // Create close button
   const closeButton = document.createElement('button');
   closeButton.textContent = 'Close';
   closeButton.className = 'btn';
-  closeButton.style.padding = '10px 20px';
   closeButton.style.marginTop = '10px';
-  
-  // Add event listener to close modal
   closeButton.addEventListener('click', () => {
     document.body.removeChild(modalContainer);
   });
   
   // Add elements to modal
   modalContainer.appendChild(imageElement);
-  modalContainer.appendChild(instructionText);
+  modalContainer.appendChild(saveButton);
   modalContainer.appendChild(closeButton);
   
   // Add modal to body
@@ -764,6 +786,4 @@ function showImageShareModal(imageDataURL) {
       document.body.removeChild(modalContainer);
     }
   });
-  
-  console.log('Image share modal displayed');
 }
