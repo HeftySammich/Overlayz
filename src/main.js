@@ -122,18 +122,40 @@ async function getImageUrlFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
 }
 
 // Function to get Hashinal image URL
-function getHashinalImageUrl(topicId) {
-  // Use the official Kiloscribe API endpoint
-  // The API expects just the topic ID without the network prefix
-  // Format from logs is like "1/0.0.9114541" - we need to extract just "0.0.9114541"
+async function getHashinalImageUrl(topicId) {
+  // Extract the clean topic ID
   const cleanTopicId = topicId.includes('/') ? topicId.split('/')[1] : topicId;
   
-  // Use the correct format: https://kiloscribe.com/api/inscription-cdn/{topicId}
-  // Note: mainnet is the default network
-  const url = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}`;
-  console.log(`Generated Hashinal URL: ${url} for topic ID: ${topicId}`);
+  // First, fetch the metadata
+  const metadataUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}`;
+  console.log(`Fetching Hashinal metadata from: ${metadataUrl}`);
   
-  return url;
+  try {
+    const response = await fetch(metadataUrl);
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+    
+    // Parse the JSON metadata
+    const metadata = await response.json();
+    console.log('Hashinal metadata:', metadata);
+    
+    // Extract the image URL from the metadata
+    if (metadata && metadata.image) {
+      console.log(`Found image URL in metadata: ${metadata.image}`);
+      return metadata.image;
+    } else if (metadata && metadata.content) {
+      // Some Hashinals might store the image in 'content' field
+      console.log(`Found content URL in metadata: ${metadata.content}`);
+      return metadata.content;
+    } else {
+      throw new Error('No image URL found in metadata');
+    }
+  } catch (error) {
+    console.error(`Error fetching Hashinal metadata: ${error.message}`);
+    // Return a placeholder or error image
+    return ERROR_PLACEHOLDER;
+  }
 }
 
 // Wait for DOM to load
@@ -785,11 +807,43 @@ document.addEventListener('DOMContentLoaded', () => {
           // Check if this is a Hashinal (has topic_id)
           if (nft.topic_id) {
             console.log(`Processing Hashinal with topic_id: ${nft.topic_id}`);
-            imageUrl = getHashinalImageUrl(nft.topic_id);
-            nftName = `Hashinal #${nft.serial_number}`;
-            console.log(`Set Hashinal image URL to: ${imageUrl}`);
-            isHashinal = true;
+            // Create a placeholder element first
+            const nftElement = document.createElement('div');
+            nftElement.className = 'nft-item';
+            nftElement.dataset.serial = nft.serial_number;
+            nftElement.dataset.tokenId = nft.token_id;
+            nftElement.dataset.hashinal = 'true';
+            nftElement.dataset.topicId = nft.topic_id;
+            
+            nftElement.innerHTML = `
+              <div class="loading-placeholder">Loading Hashinal...</div>
+              <p>Hashinal #${nft.serial_number}</p>
+            `;
+            
+            nftList.appendChild(nftElement);
+            
+            // Fetch the image URL asynchronously
+            getHashinalImageUrl(nft.topic_id).then(imgUrl => {
+              // Update the element with the image once we have it
+              nftElement.innerHTML = `
+                <img 
+                  src="${imgUrl}" 
+                  alt="Hashinal #${nft.serial_number}" 
+                  crossorigin="anonymous"
+                  onerror="
+                    console.error('Failed to load Hashinal image:', this.src);
+                    this.onerror=null; 
+                    this.src='${ERROR_PLACEHOLDER}';
+                  " 
+                  onclick="selectNFT(this)">
+                <p>Hashinal #${nft.serial_number}</p>
+                <small class="topic-id">${nft.topic_id}</small>
+              `;
+            });
+            
             hashinalProcessed++;
+            processedCount++;
+            continue; // Skip the rest of the loop for this item
           }
           // Regular NFT with metadata
           else if (nft.metadata) {
@@ -872,9 +926,16 @@ document.addEventListener('DOMContentLoaded', () => {
           // Only use ERROR_PLACEHOLDER as fallback if image loading fails
           if (isHashinal) {
             nftElement.innerHTML = `
-              <img src="${imageUrl}" alt="${nftName}" 
-                  onerror="console.error('Failed to load Hashinal image: ' + this.src); this.onerror=null; this.src='${ERROR_PLACEHOLDER}';" 
-                  onclick="selectNFT(this)">
+              <img 
+                src="${imageUrl}" 
+                alt="${nftName}" 
+                crossorigin="anonymous"
+                onerror="
+                  console.error('Failed to load Hashinal image:', this.src);
+                  this.onerror=null; 
+                  this.src='${ERROR_PLACEHOLDER}';
+                " 
+                onclick="selectNFT(this)">
               <p>${nftName}</p>
               <small class="topic-id">${nft.topic_id}</small>
             `;
