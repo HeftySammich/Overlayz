@@ -121,41 +121,17 @@ async function getImageUrlFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
   return encodeImageUrl(IPFS_GATEWAYS[0] + hash);
 }
 
-// Function to get Hashinal image URL
+// Function to get Hashinal image URL - improved version
 async function getHashinalImageUrl(topicId) {
   // Extract the clean topic ID
   const cleanTopicId = topicId.includes('/') ? topicId.split('/')[1] : topicId;
   
-  // First, fetch the metadata
-  const metadataUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}`;
-  console.log(`Fetching Hashinal metadata from: ${metadataUrl}`);
+  // Use the Kiloscribe CDN directly for Hashinals
+  const imageUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}/content`;
+  console.log(`Using direct Kiloscribe CDN URL for Hashinal: ${imageUrl}`);
   
-  try {
-    const response = await fetch(metadataUrl);
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}`);
-    }
-    
-    // Parse the JSON metadata
-    const metadata = await response.json();
-    console.log('Hashinal metadata:', metadata);
-    
-    // Extract the image URL from the metadata
-    if (metadata && metadata.image) {
-      console.log(`Found image URL in metadata: ${metadata.image}`);
-      return metadata.image;
-    } else if (metadata && metadata.content) {
-      // Some Hashinals might store the image in 'content' field
-      console.log(`Found content URL in metadata: ${metadata.content}`);
-      return metadata.content;
-    } else {
-      throw new Error('No image URL found in metadata');
-    }
-  } catch (error) {
-    console.error(`Error fetching Hashinal metadata: ${error.message}`);
-    // Return a placeholder or error image
-    return ERROR_PLACEHOLDER;
-  }
+  // Return the direct content URL - no metadata fetching needed
+  return imageUrl;
 }
 
 // Wait for DOM to load
@@ -705,56 +681,83 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Fetch NFTs using Mirror Node REST API
+  // Fetch NFTs using Mirror Node REST API with pagination
   async function fetchNFTs(accountId) {
     console.log('Fetching NFTs for account:', accountId);
     try {
       const nftList = document.getElementById('nft-list');
       if (nftList) nftList.innerHTML = '<p class="nft-placeholder">Loading NFTs...</p>';
       
-      // Fetch regular NFTs
+      // Reset the NFT array to prevent duplicates
+      allNFTs = [];
+      let nextLink = null;
+      
+      // Fetch regular NFTs with pagination
       try {
-        const response = await fetch(`https://mainnet.mirrornode.hedera.com/api/v1/accounts/${accountId}/nfts`);
-        if (response.ok) {
-          const data = await response.json();
-          allNFTs = data.nfts || [];
-          console.log(`Fetched ${allNFTs.length} NFTs from Mirror Node`);
+        // First page - use smaller limit to avoid timeout issues
+        let url = `https://mainnet.mirrornode.hedera.com/api/v1/accounts/${accountId}/nfts?limit=50`;
+        
+        // Keep fetching until there are no more pages
+        do {
+          console.log(`Fetching NFTs from: ${url}`);
+          const response = await fetch(url);
           
-          // Log some sample NFTs for debugging
-          if (allNFTs.length > 0) {
-            console.log('Sample NFT data:', allNFTs[0]);
+          if (response.ok) {
+            const data = await response.json();
+            const newNFTs = data.nfts || [];
+            
+            // Add new NFTs to our array
+            allNFTs = [...allNFTs, ...newNFTs];
+            console.log(`Fetched ${newNFTs.length} more NFTs, total now: ${allNFTs.length}`);
+            
+            // Check if there's a next page
+            nextLink = data.links && data.links.next;
+            url = nextLink ? `https://mainnet.mirrornode.hedera.com${nextLink}` : null;
+          } else {
+            console.error('Failed to fetch NFTs:', response.status, response.statusText);
+            break;
           }
-          
-          // Check for Hashinals by looking at metadata
-          let hashinalCount = 0;
-          for (const nft of allNFTs) {
-            if (nft.metadata) {
-              try {
-                const metadataStr = atob(nft.metadata);
-                console.log(`NFT ${nft.token_id}#${nft.serial_number} metadata: ${metadataStr.substring(0, 50)}...`);
-                if (metadataStr.startsWith('hcs://')) {
-                  hashinalCount++;
-                  // Extract the topic ID from the HCS URL
-                  const topicId = metadataStr.replace('hcs://', '');
-                  console.log(`Found Hashinal with topic_id: ${topicId}`);
-                  // Store the topic_id in the NFT object for later use
-                  nft.topic_id = topicId;
-                }
-              } catch (e) {
-                console.error(`Error decoding metadata for NFT ${nft.token_id}#${nft.serial_number}: ${e.message}`);
+        } while (url);
+        
+        console.log(`Total NFTs fetched: ${allNFTs.length}`);
+        
+        // Check for specific collections with correct token IDs
+        const wildTigers = allNFTs.filter(nft => nft.token_id === '0.0.6024491');
+        const fugitivesTeam = allNFTs.filter(nft => nft.token_id === '0.0.963963');
+        const emrakCubit = allNFTs.filter(nft => nft.token_id === '0.0.732384');
+        
+        console.log('Wild Tigers found:', wildTigers.length);
+        console.log('Fugitives Team found:', fugitivesTeam.length);
+        console.log('Emrak (Cubit) found:', emrakCubit.length);
+        
+        // Process Hashinals
+        let hashinalCount = 0;
+        for (const nft of allNFTs) {
+          if (nft.metadata) {
+            try {
+              const metadataStr = atob(nft.metadata);
+              if (metadataStr.startsWith('hcs://')) {
+                hashinalCount++;
+                // Extract the topic ID from the HCS URL
+                const topicId = metadataStr.replace('hcs://', '');
+                console.log(`Found Hashinal with topic_id: ${topicId}`);
+                // Store the topic_id in the NFT object for later use
+                nft.topic_id = topicId;
               }
+            } catch (e) {
+              console.error(`Error decoding metadata for NFT ${nft.token_id}#${nft.serial_number}: ${e.message}`);
             }
           }
-          console.log(`Identified ${hashinalCount} Hashinals from metadata`);
-        } else {
-          console.error('Failed to fetch NFTs:', response.status, response.statusText);
         }
+        console.log(`Identified ${hashinalCount} Hashinals from metadata`);
+        
+        // Only call displayNFTPage once
+        displayNFTPage(1);
       } catch (error) {
         console.error('Error fetching regular NFTs:', error);
+        const nftList = document.getElementById('nft-list');
+        if (nftList) nftList.innerHTML = '<p class="nft-placeholder">Error fetching NFTs</p>';
       }
-      
-      // Display NFTs with better error handling
-      displayNFTPage(1);
     } catch (error) {
       console.error('NFT fetch error:', error);
       const nftList = document.getElementById('nft-list');
@@ -807,43 +810,12 @@ document.addEventListener('DOMContentLoaded', () => {
           // Check if this is a Hashinal (has topic_id)
           if (nft.topic_id) {
             console.log(`Processing Hashinal with topic_id: ${nft.topic_id}`);
-            // Create a placeholder element first
-            const nftElement = document.createElement('div');
-            nftElement.className = 'nft-item';
-            nftElement.dataset.serial = nft.serial_number;
-            nftElement.dataset.tokenId = nft.token_id;
-            nftElement.dataset.hashinal = 'true';
-            nftElement.dataset.topicId = nft.topic_id;
             
-            nftElement.innerHTML = `
-              <div class="loading-placeholder">Loading Hashinal...</div>
-              <p>Hashinal #${nft.serial_number}</p>
-            `;
-            
-            nftList.appendChild(nftElement);
-            
-            // Fetch the image URL asynchronously
-            getHashinalImageUrl(nft.topic_id).then(imgUrl => {
-              // Update the element with the image once we have it
-              nftElement.innerHTML = `
-                <img 
-                  src="${imgUrl}" 
-                  alt="Hashinal #${nft.serial_number}" 
-                  crossorigin="anonymous"
-                  onerror="
-                    console.error('Failed to load Hashinal image:', this.src);
-                    this.onerror=null; 
-                    this.src='${ERROR_PLACEHOLDER}';
-                  " 
-                  onclick="selectNFT(this)">
-                <p>Hashinal #${nft.serial_number}</p>
-                <small class="topic-id">${nft.topic_id}</small>
-              `;
-            });
-            
+            // Use direct content URL for Hashinals
+            imageUrl = `https://kiloscribe.com/api/inscription-cdn/${nft.topic_id}/content`;
+            nftName = `Hashinal #${nft.serial_number}`;
+            isHashinal = true;
             hashinalProcessed++;
-            processedCount++;
-            continue; // Skip the rest of the loop for this item
           }
           // Regular NFT with metadata
           else if (nft.metadata) {
@@ -855,13 +827,14 @@ document.addEventListener('DOMContentLoaded', () => {
               if (metadataStr.startsWith('hcs://')) {
                 const topicId = metadataStr.replace('hcs://', '');
                 console.log(`Found HCS token with topic_id: ${topicId}`);
-                imageUrl = getHashinalImageUrl(topicId);
+                
+                // Use direct content URL for Hashinals
+                imageUrl = `https://kiloscribe.com/api/inscription-cdn/${topicId}/content`;
                 nftName = `Hashinal #${nft.serial_number}`;
-                console.log(`Set Hashinal image URL to: ${imageUrl}`);
                 isHashinal = true;
                 hashinalProcessed++;
               }
-              // Handle different metadata formats
+              // Handle other metadata formats as before
               else if (metadataStr.startsWith('ipfs://')) {
                 try {
                   const metadata = await loadFromIPFS(metadataStr);
@@ -913,38 +886,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
           
-          // Create NFT element with additional data attributes for debugging
+          // Create NFT element
           const nftElement = document.createElement('div');
           nftElement.className = 'nft-item';
           nftElement.dataset.serial = nft.serial_number;
           nftElement.dataset.tokenId = nft.token_id;
           if (isHashinal) {
             nftElement.dataset.hashinal = 'true';
-            nftElement.dataset.topicId = nft.topic_id;
+            nftElement.dataset.topicId = nft.topic_id || metadataStr?.replace('hcs://', '');
           }
           
-          // Only use ERROR_PLACEHOLDER as fallback if image loading fails
-          if (isHashinal) {
-            nftElement.innerHTML = `
-              <img 
-                src="${imageUrl}" 
-                alt="${nftName}" 
-                crossorigin="anonymous"
-                onerror="
-                  console.error('Failed to load Hashinal image:', this.src);
-                  this.onerror=null; 
-                  this.src='${ERROR_PLACEHOLDER}';
-                " 
-                onclick="selectNFT(this)">
-              <p>${nftName}</p>
-              <small class="topic-id">${nft.topic_id}</small>
-            `;
-          } else {
-            nftElement.innerHTML = `
-              <img src="${imageUrl}" alt="${nftName}" onerror="this.onerror=null; this.src='${ERROR_PLACEHOLDER}';" onclick="selectNFT(this)">
-              <p>${nftName}</p>
-            `;
-          }
+          // Simplified HTML for all NFTs including Hashinals
+          nftElement.innerHTML = `
+            <img 
+              src="${imageUrl}" 
+              alt="${nftName}" 
+              crossorigin="anonymous"
+              onerror="this.onerror=null; this.src='${ERROR_PLACEHOLDER}';" 
+              onclick="selectNFT(this)">
+            <p>${nftName}</p>
+            ${isHashinal ? `<small class="topic-id">${nft.topic_id}</small>` : ''}
+          `;
           
           nftList.appendChild(nftElement);
           processedCount++;
@@ -1055,4 +1017,32 @@ function showImageShareModal(imageDataURL) {
       document.body.removeChild(modalContainer);
     }
   });
+}
+
+// Add this function to help diagnose specific NFT issues
+function logNFTDetails(nft) {
+  console.log(`NFT Details for ${nft.token_id}#${nft.serial_number}:`);
+  console.log('- Token ID:', nft.token_id);
+  console.log('- Serial Number:', nft.serial_number);
+  console.log('- Metadata:', nft.metadata ? `Present (${nft.metadata.length} bytes)` : 'Missing');
+  
+  if (nft.metadata) {
+    try {
+      const decodedMetadata = atob(nft.metadata);
+      console.log('- Decoded Metadata:', decodedMetadata.substring(0, 100) + '...');
+      
+      // Try to parse as JSON if it looks like JSON
+      if (decodedMetadata.trim().startsWith('{')) {
+        try {
+          const jsonMetadata = JSON.parse(decodedMetadata);
+          console.log('- JSON Metadata:', jsonMetadata);
+          console.log('- Has Image:', jsonMetadata.image ? 'Yes' : 'No');
+        } catch (e) {
+          console.log('- Not valid JSON metadata');
+        }
+      }
+    } catch (e) {
+      console.log('- Failed to decode metadata:', e.message);
+    }
+  }
 }
