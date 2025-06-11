@@ -121,17 +121,46 @@ async function getImageUrlFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
   return encodeImageUrl(IPFS_GATEWAYS[0] + hash);
 }
 
-// Function to get Hashinal image URL - improved version
+// Function to get Hashinal image URL using Kiloscribe CDN
 async function getHashinalImageUrl(topicId) {
-  // Extract the clean topic ID
+  // Clean the topic ID - remove any prefixes or extra parts
   const cleanTopicId = topicId.includes('/') ? topicId.split('/')[1] : topicId;
+  console.log(`Processing Hashinal with clean topic_id: ${cleanTopicId}`);
   
-  // Use the Kiloscribe CDN directly for Hashinals
-  const imageUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}/content`;
-  console.log(`Using direct Kiloscribe CDN URL for Hashinal: ${imageUrl}`);
-  
-  // Return the direct content URL - no metadata fetching needed
-  return imageUrl;
+  // Use the Kiloscribe Inscription API as recommended
+  try {
+    const metadataUrl = `https://kiloscribe.com/api/inscription/${cleanTopicId}`;
+    console.log(`Fetching Hashinal metadata from: ${metadataUrl}`);
+    
+    const response = await fetch(metadataUrl);
+    if (!response.ok) {
+      throw new Error(`Kiloscribe API returned ${response.status}`);
+    }
+    
+    const metadata = await response.json();
+    console.log('Hashinal metadata:', metadata);
+    
+    // Check if the content_type is an image
+    if (metadata.content_type && metadata.content_type.startsWith('image/')) {
+      // Use the direct content URL for images
+      const contentUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}/content`;
+      console.log(`Using direct content URL for image: ${contentUrl}`);
+      return contentUrl;
+    } 
+    else {
+      // For other content types, use the preview image
+      const previewUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}/preview`;
+      console.log(`Using preview URL: ${previewUrl}`);
+      return previewUrl;
+    }
+  } catch (error) {
+    console.error(`Error fetching from Kiloscribe API: ${error.message}`);
+    
+    // Fallback to direct content URL if metadata fetch fails
+    const fallbackUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}/content`;
+    console.log(`Falling back to direct content URL: ${fallbackUrl}`);
+    return fallbackUrl;
+  }
 }
 
 // Wait for DOM to load
