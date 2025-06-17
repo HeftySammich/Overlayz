@@ -123,43 +123,143 @@ async function getImageUrlFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
 
 // Function to get Hashinal image URL using Kiloscribe CDN
 async function getHashinalImageUrl(topicId) {
-  // Clean the topic ID - remove any prefixes or extra parts
-  const cleanTopicId = topicId.includes('/') ? topicId.split('/')[1] : topicId;
-  console.log(`Processing Hashinal with clean topic_id: ${cleanTopicId}`);
+  // Ensure we're using a clean topic ID (remove "1/" prefix if present)
+  if (topicId.startsWith('1/')) {
+    topicId = topicId.replace('1/', '');
+  }
   
-  // Use the Kiloscribe Inscription API as recommended
+  console.log(`Processing Hashinal with topic_id: "${topicId}"`);
+  
+  // Use CORS proxy to avoid CORS issues
+  const corsProxy = 'https://corsproxy.io/?';
+  
   try {
-    const metadataUrl = `https://kiloscribe.com/api/inscription/${cleanTopicId}`;
-    console.log(`Fetching Hashinal metadata from: ${metadataUrl}`);
+    // Use the inscription-cdn endpoint as specified in the documentation
+    const cdnUrl = `${corsProxy}https://kiloscribe.com/api/inscription-cdn/${topicId}`;
+    console.log(`Fetching Hashinal from CDN: ${cdnUrl}`);
     
-    const response = await fetch(metadataUrl);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
+    const response = await fetch(cdnUrl, { 
+      signal: controller.signal,
+      method: 'GET'
+    });
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
-      throw new Error(`Kiloscribe API returned ${response.status}`);
+      throw new Error(`CDN HTTP error: ${response.status}`);
     }
     
-    const metadata = await response.json();
-    console.log('Hashinal metadata:', metadata);
+    // Check content type to determine how to handle the response
+    const contentType = response.headers.get('content-type');
+    console.log(`Content type: ${contentType}`);
     
-    // Check if the content_type is an image
-    if (metadata.content_type && metadata.content_type.startsWith('image/')) {
-      // Use the direct content URL for images
-      const contentUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}/content`;
-      console.log(`Using direct content URL for image: ${contentUrl}`);
-      return contentUrl;
-    } 
-    else {
-      // For other content types, use the preview image
-      const previewUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}/preview`;
-      console.log(`Using preview URL: ${previewUrl}`);
-      return previewUrl;
+    if (contentType && contentType.includes('image')) {
+      // It's an image, convert to data URL
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } else if (contentType && contentType.includes('application/json')) {
+      // It's JSON, extract image URL if available
+      const data = await response.json();
+      console.log(`Received JSON data:`, data);
+
+      // Look for image URL in the JSON
+      if (data.image) {
+        // Handle special case where image URL contains "hcs://"
+        if (data.image.includes('hcs://')) {
+          // Extract the topic ID from the HCS URL
+          const hcsTopicId = data.image.match(/hcs:\/\/(?:1\/)?([0-9.]+)/)?.[1];
+          if (hcsTopicId) {
+            console.log(`Found HCS topic ID in image URL: ${hcsTopicId}`);
+            // Recursively call this function with the new topic ID
+            return getHashinalImageUrl(hcsTopicId);
+          }
+        }
+        
+        // If image URL is found, fetch it (handle both relative and absolute URLs)
+        let imageUrl;
+        if (data.image.startsWith('http')) {
+          imageUrl = data.image;
+        } else if (data.image.startsWith('/')) {
+          imageUrl = `https://kiloscribe.com${data.image}`;
+        } else {
+          imageUrl = `https://kiloscribe.com/${data.image}`;
+        }
+        
+        console.log(`Found image URL in JSON: ${imageUrl}`);
+        
+        // Fetch the image
+        const imageResponse = await fetch(`${corsProxy}${imageUrl}`);
+        if (!imageResponse.ok) {
+          throw new Error(`Image fetch error: ${imageResponse.status}`);
+        }
+        
+        const blob = await imageResponse.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } else {
+        throw new Error('No image URL found in JSON response');
+      }
+    } else {
+      // Unknown content type
+      throw new Error(`Unsupported content type: ${contentType}`);
     }
   } catch (error) {
-    console.error(`Error fetching from Kiloscribe API: ${error.message}`);
+    console.error(`Error fetching from Kiloscribe CDN: ${error.message}`);
     
-    // Fallback to direct content URL if metadata fetch fails
-    const fallbackUrl = `https://kiloscribe.com/api/inscription-cdn/${cleanTopicId}/content`;
-    console.log(`Falling back to direct content URL: ${fallbackUrl}`);
-    return fallbackUrl;
+    // Try direct image URL as a fallback
+    try {
+      // Try the direct image API as a fallback
+      const directImageUrl = `${corsProxy}https://kiloscribe.com/api/inscription-image/${topicId}`;
+      console.log(`Trying direct image URL: ${directImageUrl}`);
+      
+      const directResponse = await fetch(directImageUrl);
+      if (directResponse.ok) {
+        const blob = await directResponse.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      } else {
+        throw new Error(`Direct image HTTP error: ${directResponse.status}`);
+      }
+    } catch (directError) {
+      console.error(`Error with direct image approach: ${directError.message}`);
+      
+      // Return a placeholder as final fallback
+      return `https://placehold.co/150x150/orange/white?text=HASHINAL-${topicId.split('.').pop().substring(0, 8)}`;
+    }
+  }
+}
+
+// Simple function to download and convert image to data URL
+async function downloadAndConvertToDataUrl(url) {
+  try {
+    console.log(`Downloading image from: ${url}`);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error(`Error downloading image: ${error.message}`);
+    throw error;
   }
 }
 
@@ -767,10 +867,14 @@ document.addEventListener('DOMContentLoaded', () => {
               const metadataStr = atob(nft.metadata);
               if (metadataStr.startsWith('hcs://')) {
                 hashinalCount++;
-                // Extract the topic ID from the HCS URL
-                const topicId = metadataStr.replace('hcs://', '');
+                // Extract the topic ID from the HCS URL and remove the "1/" prefix if present
+                let topicId = metadataStr.replace('hcs://', '');
+                // Remove the "1/" prefix if present
+                if (topicId.startsWith('1/')) {
+                  topicId = topicId.replace('1/', '');
+                }
                 console.log(`Found Hashinal with topic_id: ${topicId}`);
-                // Store the topic_id in the NFT object for later use
+                // Store the clean topic_id in the NFT object for later use
                 nft.topic_id = topicId;
               }
             } catch (e) {
@@ -840,11 +944,57 @@ document.addEventListener('DOMContentLoaded', () => {
           if (nft.topic_id) {
             console.log(`Processing Hashinal with topic_id: ${nft.topic_id}`);
             
-            // Use direct content URL for Hashinals
-            imageUrl = `https://kiloscribe.com/api/inscription-cdn/${nft.topic_id}/content`;
-            nftName = `Hashinal #${nft.serial_number}`;
-            isHashinal = true;
-            hashinalProcessed++;
+            try {
+              // Use getHashinalImageUrl to get the proxied URL
+              imageUrl = await getHashinalImageUrl(nft.topic_id);
+              nftName = `Hashinal #${nft.serial_number}`;
+              isHashinal = true;
+              hashinalProcessed++;
+              
+              // Create NFT element with special attributes for Hashinals
+              const nftElement = document.createElement('div');
+              nftElement.className = 'nft-item';
+              nftElement.dataset.serial = nft.serial_number;
+              nftElement.dataset.tokenId = nft.token_id;
+              nftElement.dataset.hashinal = 'true';
+              nftElement.dataset.topicId = nft.topic_id;
+
+              // For Hashinals, use a placeholder initially and then try to load the actual image
+              const placeholderUrl = `https://placehold.co/150x150/orange/white?text=HASHINAL-${nft.topic_id.substring(0, 8)}`;
+              nftElement.innerHTML = `
+                <img 
+                  src="${placeholderUrl}" 
+                  alt="${nftName}" 
+                  crossorigin="anonymous"
+                  referrerpolicy="no-referrer"
+                  data-topic-id="${nft.topic_id}"
+                  onclick="selectNFT(this)">
+                <p>${nftName}</p>
+                <small class="topic-id">${nft.topic_id}</small>
+              `;
+
+              nftList.appendChild(nftElement);
+              processedCount++;
+
+              // Try to load the actual image asynchronously
+              getHashinalImageUrl(nft.topic_id)
+                .then(imageUrl => {
+                  // Find the image element we just created and update its src
+                  const imgElement = nftElement.querySelector('img');
+                  if (imgElement) {
+                    imgElement.src = imageUrl;
+                  }
+                })
+                .catch(error => {
+                  console.error(`Failed to load Hashinal image: ${error.message}`);
+                  // The placeholder remains if loading fails
+                });
+
+              continue; // Skip the rest of the loop for Hashinals
+            } catch (error) {
+              console.error(`Error processing Hashinal: ${error.message}`);
+              // Continue with default handling if there's an error
+            }
           }
           // Regular NFT with metadata
           else if (nft.metadata) {
@@ -857,8 +1007,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const topicId = metadataStr.replace('hcs://', '');
                 console.log(`Found HCS token with topic_id: ${topicId}`);
                 
-                // Use direct content URL for Hashinals
-                imageUrl = `https://kiloscribe.com/api/inscription-cdn/${topicId}/content`;
+                // Use getHashinalImageUrl to get the proxied URL
+                imageUrl = await getHashinalImageUrl(topicId);
                 nftName = `Hashinal #${nft.serial_number}`;
                 isHashinal = true;
                 hashinalProcessed++;
