@@ -12,9 +12,7 @@
 
 @font-face {
   font-family: 'Lethal Slime';
-  /* Name the font */
   src: url('/public/assets/fonts/Lethal Slime.ttf') format('truetype');
-  /* Path to the font file */
   font-weight: normal;
   font-style: normal;
 }
@@ -53,11 +51,7 @@ body {
   overflow: auto;
   width: 100%;
   height: 100%;
-  background-color: rgba(0,
-      0,
-      0,
-      0.8);
-  /* Semi-transparent overlay to darken content */
+  background-color: rgba(0, 0, 0, 0.8);
 }
 
 /* Header styles */
@@ -111,7 +105,6 @@ main {
 }
 
 .container {
-  /* max-width: 1200px; */
   margin: 0 auto;
 }
 
@@ -126,7 +119,8 @@ main .wallet-section h2 {
   font-size: 2.5rem;
   margin-bottom: 20px;
   background: linear-gradient(90deg, #00ff40, #008020);
-  -webkit-background-clip: text;
+  background-clip: text; /* Add unprefixed property */
+  -webkit-background-clip: text; /* Keep vendor prefix */
   -webkit-text-fill-color: transparent;
   text-shadow: 0 0 10px rgba(0, 255, 64, 0.5);
 }
@@ -210,9 +204,9 @@ main #wallet-status {
   font-family: 'Lethal Slime', sans-serif;
   font-size: 3rem;
   background: linear-gradient(90deg, #00ff40, #008020);
-  -webkit-background-clip: text;
+  background-clip: text; /* Add unprefixed property */
+  -webkit-background-clip: text; /* Keep vendor prefix */
   -webkit-text-fill-color: transparent;
-  /* text-shadow: 0 0 10px rgba(0, 255, 64, 0.5); */
 }
 
 .overlay-section .overlay-intro {
@@ -229,7 +223,6 @@ main #wallet-status {
   min-height: 200px;
   position: relative;
   margin: 20px 0;
-  /* For centering the placeholder */
 }
 
 .nft-placeholder {
@@ -339,7 +332,6 @@ main #wallet-status {
   align-self: center;
   justify-self: center;
   opacity: 0.6;
-  /*z-index: 1;*/
 }
 
 .accessory-btn span {
@@ -360,16 +352,46 @@ main #wallet-status {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* Ensure the Konva stage takes full size of container */
+/* === START MODIFIED SECTION: Konva Canvas and Transformer Styles === */
 .nft-display .konvajs-content {
   width: 100% !important;
   height: 100% !important;
+  touch-action: none; /* Changed from pinch-zoom to none to prevent browser gestures */
 }
 
 .nft-display .konvajs-content canvas {
   width: 100% !important;
   height: 100% !important;
+  user-select: none; /* Prevent text selection during drag */
 }
+
+/* Enhance transformer visibility and touch-friendliness */
+.konvajs-content {
+  touch-action: none !important;
+}
+
+.konvajs-content canvas {
+  touch-action: none !important;
+  user-select: none !important;
+}
+
+/* Make transformer more visible */
+.konva-Transformer-node {
+  border: 2px solid #00ff40 !important;
+}
+
+.konva-Transformer-anchor {
+  fill: #000 !important;
+  stroke: #00ff40 !important;
+  stroke-width: 2px !important;
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.konva-Transformer-rotationHandle {
+  fill: #00ff40 !important;
+}
+/* === END MODIFIED SECTION === */
 
 .canvas-placeholder {
   position: absolute;
@@ -422,7 +444,6 @@ main #wallet-status {
 #apply-overlay {
   margin-top: 10px;
 }
-
 
 .footer-content {
   display: flex;
@@ -506,8 +527,6 @@ main #wallet-status {
   padding: 10px;
 }
 
-
-
 /* Responsive styles */
 @media (max-width: 768px) {
   main {
@@ -528,7 +547,6 @@ main #wallet-status {
     max-width: 300px;
     height: 300px;
   }
-  
 }
 
 @media (max-width: 480px) {

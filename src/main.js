@@ -11,52 +11,41 @@ let nftsPerPage = 10000; // Show all NFTs at once
 let allNFTs = [];
 let isLoadingMoreNFTs = false;
 const IPFS_GATEWAYS = [
-  'https://hashpack.infura-ipfs.io/ipfs/',            // HashPack's gateway first
-  'https://grumpy-bronze-chipmunk.myfilebase.com/ipfs/', 
-  'https://gateway.pinata.cloud/ipfs/',                  
-  'https://gateway.lighthouse.storage/ipfs/'            
+  'https://hashpack.infura-ipfs.io/ipfs/',
+  'https://grumpy-bronze-chipmunk.myfilebase.com/ipfs/',
+  'https://gateway.pinata.cloud/ipfs/',
+  'https://gateway.lighthouse.storage/ipfs/'
 ];
-const GATEWAY_TIMEOUT = 5000; // 5 seconds timeout for each gateway
-
-// Remove placeholder constants since we'll be loading actual images
-// const PLACEHOLDER_IMAGE = 'https://placehold.co/150x150/gray/white?text=NFT';
-// const SLIME_PLACEHOLDER = 'https://placehold.co/150x150/green/white?text=SLIME';
-// const HASHINAL_PLACEHOLDER = 'https://placehold.co/150x150/orange/white?text=HASHINAL';
-// const HCS_PLACEHOLDER = 'https://placehold.co/150x150/blue/white?text=HCS';
+const GATEWAY_TIMEOUT = 5000;
 const ERROR_PLACEHOLDER = 'https://placehold.co/150x150/red/white?text=ERROR';
 
 // Helper function to properly encode URLs
 function encodeImageUrl(url) {
-  // Replace # with %23 and handle other special characters
   return url.replace(/#/g, '%23')
             .replace(/\+/g, '%2B')
             .replace(/\s/g, '%20')
             .replace(/&/g, '%26');
 }
 
-// Helper function to try loading from multiple gateways with better error handling
+// Helper function to try loading from multiple gateways
 async function loadFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
-  // Check if this is an HCS URL, not IPFS
   if (ipfsHash.startsWith('hcs://')) {
     try {
-      // Extract the topic ID from the HCS URL
       const topicId = ipfsHash.replace('hcs://', '');
       console.log(`Loading HCS metadata for topic ID: ${topicId}`);
       return {
         name: "HCS Token",
         description: "Token with HCS metadata",
-        image: getHashinalImageUrl(topicId) // Use Kiloscribe CDN for HCS tokens too
+        image: getHashinalImageUrl(topicId)
       };
     } catch (error) {
       console.warn(`Failed to load HCS metadata: ${error.message}`);
     }
   }
 
-  // Remove ipfs:// prefix if present
   const hash = ipfsHash.replace('ipfs://', '');
   console.log(`Loading IPFS metadata for hash: ${hash}`);
   
-  // Try each gateway in sequence
   for (const gateway of IPFS_GATEWAYS) {
     const url = gateway + hash;
     try {
@@ -72,25 +61,21 @@ async function loadFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
       }
     } catch (error) {
       console.warn(`Failed to load from gateway ${gateway}: ${error.message}`);
-      // Continue to next gateway
     }
   }
   
-  // If all gateways fail, return a basic metadata object
   return {
     name: "Failed to Load",
     description: "Could not load metadata from IPFS",
-    image: "" // No placeholder, will trigger onerror handler
+    image: ""
   };
 }
 
 // Helper function to get image URL from IPFS
 async function getImageUrlFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
-  // Remove ipfs:// prefix if present
   const hash = ipfsHash.replace('ipfs://', '');
   console.log(`Getting image URL for IPFS hash: ${hash}`);
   
-  // Try each gateway in sequence
   for (const gateway of IPFS_GATEWAYS) {
     const url = gateway + hash;
     try {
@@ -105,41 +90,35 @@ async function getImageUrlFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
       
       if (response.ok) {
         console.log(`Image available at gateway: ${gateway}`);
-        return encodeImageUrl(url); // Ensure URL is properly encoded
+        return encodeImageUrl(url);
       }
     } catch (error) {
-      // Only log if it's not an abort error (which is expected for timeouts)
       if (error.name !== 'AbortError') {
         console.warn(`Image not available at gateway ${gateway}: ${error.message}`);
       }
-      // Continue to next gateway
     }
   }
   
-  // If all gateways fail, return the first gateway as last resort
   console.log(`All gateways failed, using first gateway as fallback for: ${hash}`);
   return encodeImageUrl(IPFS_GATEWAYS[0] + hash);
 }
 
 // Function to get Hashinal image URL using Kiloscribe CDN
 async function getHashinalImageUrl(topicId) {
-  // Ensure we're using a clean topic ID (remove "1/" prefix if present)
   if (topicId.startsWith('1/')) {
     topicId = topicId.replace('1/', '');
   }
   
   console.log(`Processing Hashinal with topic_id: "${topicId}"`);
   
-  // Use CORS proxy to avoid CORS issues
   const corsProxy = 'https://corsproxy.io/?';
   
   try {
-    // Use the inscription-cdn endpoint as specified in the documentation
     const cdnUrl = `${corsProxy}https://kiloscribe.com/api/inscription-cdn/${topicId}`;
     console.log(`Fetching Hashinal from CDN: ${cdnUrl}`);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     
     const response = await fetch(cdnUrl, { 
       signal: controller.signal,
@@ -151,12 +130,10 @@ async function getHashinalImageUrl(topicId) {
       throw new Error(`CDN HTTP error: ${response.status}`);
     }
     
-    // Check content type to determine how to handle the response
     const contentType = response.headers.get('content-type');
     console.log(`Content type: ${contentType}`);
     
     if (contentType && contentType.includes('image')) {
-      // It's an image, convert to data URL
       const blob = await response.blob();
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -165,24 +142,18 @@ async function getHashinalImageUrl(topicId) {
         reader.readAsDataURL(blob);
       });
     } else if (contentType && contentType.includes('application/json')) {
-      // It's JSON, extract image URL if available
       const data = await response.json();
       console.log(`Received JSON data:`, data);
 
-      // Look for image URL in the JSON
       if (data.image) {
-        // Handle special case where image URL contains "hcs://"
         if (data.image.includes('hcs://')) {
-          // Extract the topic ID from the HCS URL
           const hcsTopicId = data.image.match(/hcs:\/\/(?:1\/)?([0-9.]+)/)?.[1];
           if (hcsTopicId) {
             console.log(`Found HCS topic ID in image URL: ${hcsTopicId}`);
-            // Recursively call this function with the new topic ID
             return getHashinalImageUrl(hcsTopicId);
           }
         }
         
-        // If image URL is found, fetch it (handle both relative and absolute URLs)
         let imageUrl;
         if (data.image.startsWith('http')) {
           imageUrl = data.image;
@@ -194,7 +165,6 @@ async function getHashinalImageUrl(topicId) {
         
         console.log(`Found image URL in JSON: ${imageUrl}`);
         
-        // Fetch the image
         const imageResponse = await fetch(`${corsProxy}${imageUrl}`);
         if (!imageResponse.ok) {
           throw new Error(`Image fetch error: ${imageResponse.status}`);
@@ -211,15 +181,12 @@ async function getHashinalImageUrl(topicId) {
         throw new Error('No image URL found in JSON response');
       }
     } else {
-      // Unknown content type
       throw new Error(`Unsupported content type: ${contentType}`);
     }
   } catch (error) {
     console.error(`Error fetching from Kiloscribe CDN: ${error.message}`);
     
-    // Try direct image URL as a fallback
     try {
-      // Try the direct image API as a fallback
       const directImageUrl = `${corsProxy}https://kiloscribe.com/api/inscription-image/${topicId}`;
       console.log(`Trying direct image URL: ${directImageUrl}`);
       
@@ -236,14 +203,12 @@ async function getHashinalImageUrl(topicId) {
       }
     } catch (directError) {
       console.error(`Error with direct image approach: ${directError.message}`);
-      
-      // Return a placeholder as final fallback
       return `https://placehold.co/150x150/orange/white?text=HASHINAL-${topicId.split('.').pop().substring(0, 8)}`;
     }
   }
 }
 
-// Simple function to download and convert image to data URL
+// Download and convert image to data URL
 async function downloadAndConvertToDataUrl(url) {
   try {
     console.log(`Downloading image from: ${url}`);
@@ -263,7 +228,7 @@ async function downloadAndConvertToDataUrl(url) {
   }
 }
 
-// Wait for DOM to load
+// DOM loaded
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM fully loaded');
 
@@ -346,15 +311,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (button) {
           button.addEventListener('click', () => {
             const overlays = [
-              '/assets/arts/Good_Morning._Overlay.png', // overlay1: Good Morning
-              '/assets/arts/Mic.Overlay.png',          // overlay2: Microphone
-              '/assets/arts/Boombox.Overlay.png',      // overlay3: Boombox
-              '/assets/arts/Bonjour.Overlay.png',      // overlay4: Bonjour
-              '/assets/arts/Sign.Overlay.png',         // overlay5: Sign
-              '/assets/arts/Goodnight.Overlay.png',    // overlay6: Goodnight
-              ''                                       // overlay7: Upload Image (handled separately)
+              '/assets/arts/Good_Morning._Overlay.png',
+              '/assets/arts/Mic.Overlay.png',
+              '/assets/arts/Boombox.Overlay.png',
+              '/assets/arts/Bonjour.Overlay.png',
+              '/assets/arts/Sign.Overlay.png',
+              '/assets/arts/Goodnight.Overlay.png',
+              ''
             ];
-            // Only set overlayImg.src for buttons overlay1 to overlay6
             if (index < 6) {
               const overlayImg = document.getElementById('overlay-img');
               overlayImg.src = overlays[index];
@@ -375,12 +339,10 @@ document.addEventListener('DOMContentLoaded', () => {
           if (selectedNFT && stage) {
             console.log('Apply overlay button clicked');
             
-            // Temporarily hide transformer to avoid it showing in the export
             const transformerVisible = transformer.visible();
             transformer.visible(false);
             layer.draw();
             
-            // Load original NFT to get its dimensions
             const nftImg = new Image();
             nftImg.crossOrigin = 'Anonymous';
             nftImg.src = selectedNFT;
@@ -389,29 +351,23 @@ document.addEventListener('DOMContentLoaded', () => {
               console.log('Original NFT dimensions for export:', nftImg.width, nftImg.height);
               
               if (overlayImage) {
-                // Create a temporary canvas for the final image
                 const tempCanvas = document.createElement('canvas');
                 const tempCtx = tempCanvas.getContext('2d');
                 
-                // Set canvas to original NFT dimensions
                 tempCanvas.width = nftImg.width;
                 tempCanvas.height = nftImg.height;
                 
-                // Draw the original NFT as background
                 tempCtx.drawImage(nftImg, 0, 0, nftImg.width, nftImg.height);
                 
-                // Get the current stage dimensions
                 const stageWidth = stage.width();
                 const stageHeight = stage.height();
                 
-                // Calculate the scale ratio between original image and stage
                 const scaleRatioX = nftImg.width / stageWidth;
                 const scaleRatioY = nftImg.height / stageHeight;
                 
                 console.log('Stage dimensions:', stageWidth, stageHeight);
                 console.log('Scale ratios:', scaleRatioX, scaleRatioY);
                 
-                // Get overlay properties directly from Konva
                 const overlayWidth = overlayImage.width() * overlayImage.scaleX();
                 const overlayHeight = overlayImage.height() * overlayImage.scaleY();
                 const overlayX = overlayImage.x();
@@ -426,11 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
                   rotation: rotation
                 });
                 
-                // Calculate center point of overlay in stage coordinates
                 const centerX = overlayX + (overlayWidth / 2);
                 const centerY = overlayY + (overlayHeight / 2);
                 
-                // Scale to output dimensions
                 const scaledCenterX = centerX * scaleRatioX;
                 const scaledCenterY = centerY * scaleRatioY;
                 const scaledWidth = overlayWidth * scaleRatioX;
@@ -439,43 +393,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Scaled overlay center:', scaledCenterX, scaledCenterY);
                 console.log('Scaled overlay dimensions:', scaledWidth, scaledHeight);
                 
-                // Create a new image for the overlay
                 const overlayImg = new Image();
                 overlayImg.crossOrigin = 'Anonymous';
                 overlayImg.src = overlayImage.image().src;
                 
                 overlayImg.onload = () => {
-                  // Apply transformations to draw the overlay
                   tempCtx.save();
                   
-                  // Move to the center point of where the overlay should be
                   tempCtx.translate(scaledCenterX, scaledCenterY);
                   
-                  // Apply rotation
                   tempCtx.rotate(rotation * Math.PI / 180);
                   
-                  // Draw the overlay centered at the rotation point
                   tempCtx.drawImage(
                     overlayImg,
-                    -scaledWidth / 2,  // Center the overlay horizontally
-                    -scaledHeight / 2, // Center the overlay vertically
+                    -scaledWidth / 2,
+                    -scaledHeight / 2,
                     scaledWidth,
                     scaledHeight
                   );
                   
                   tempCtx.restore();
                   
-                  // Export the final canvas
                   const dataURL = tempCanvas.toDataURL('image/png');
                   console.log('Final canvas exported at original NFT size');
                   
-                  // Check if we're on mobile
                   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                   
                   if (isMobile) {
-                    // Use Web Share API if available
                     if (navigator.share) {
-                      // Convert dataURL to Blob for sharing
                       fetch(dataURL)
                         .then(res => res.blob())
                         .then(blob => {
@@ -485,23 +430,19 @@ document.addEventListener('DOMContentLoaded', () => {
                             files: [file]
                           }).catch(error => {
                             console.error('Error sharing:', error);
-                            // Fallback to modal if sharing fails
                             showImageShareModal(dataURL);
                           });
                         });
                     } else {
-                      // Fallback for browsers without Web Share API
                       showImageShareModal(dataURL);
                     }
                   } else {
-                    // Desktop behavior - download the image
                     const link = document.createElement('a');
                     link.href = dataURL;
                     link.download = 'overlayed-nft.png';
                     link.click();
                   }
                   
-                  // Restore transformer visibility
                   transformer.visible(transformerVisible);
                   layer.draw();
                 };
@@ -514,7 +455,6 @@ document.addEventListener('DOMContentLoaded', () => {
                   layer.draw();
                 };
               } else {
-                // No overlay, just export the NFT
                 const tempCanvas = document.createElement('canvas');
                 const tempCtx = tempCanvas.getContext('2d');
                 tempCanvas.width = nftImg.width;
@@ -523,21 +463,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const dataURL = tempCanvas.toDataURL('image/png');
                 
-                // Check if we're on mobile
                 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                 
                 if (isMobile) {
-                  // Create a modal to display the image for mobile
                   showImageShareModal(dataURL);
                 } else {
-                  // Desktop behavior - download the image
                   const link = document.createElement('a');
                   link.href = dataURL;
                   link.download = 'nft.png';
                   link.click();
                 }
                 
-                // Restore transformer visibility
                 transformer.visible(transformerVisible);
                 layer.draw();
               }
@@ -563,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Initialize Konva stage
+  // Initialize Konva stage - SIMPLIFIED VERSION
   function initKonvaStage() {
     console.log('Initializing Konva stage');
     const container = document.getElementById('nft-display');
@@ -592,26 +528,29 @@ document.addEventListener('DOMContentLoaded', () => {
     transformer = new Konva.Transformer({
       nodes: [],
       enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-      rotationSnaps: [0, 90, 180, 270],
       borderStroke: '#00ff40',
       borderStrokeWidth: 2,
       anchorStroke: '#00ff40',
       anchorFill: '#000',
-      anchorSize: 10,
+      anchorSize: 12,
       rotateEnabled: true,
       resizeEnabled: true,
+      keepRatio: true
     });
     
     layer.add(transformer);
     
-    console.log('Konva transformer added to layer');
-    
-    // Add stage click handler to deselect
+    // Stage click handler for deselection
     stage.on('click tap', function(e) {
-      // If we clicked on the stage but not on the transformer or overlay
-      if (e.target === stage) {
+      // Only deselect if clicking directly on stage or background
+      if (e.target === stage || e.target === backgroundImage) {
         console.log('Stage clicked, deselecting transformer');
         transformer.nodes([]);
+        layer.draw();
+      } else if (e.target === overlayImage) {
+        // Ensure overlay is selectable by clicking anywhere on it
+        console.log('Overlay clicked, selecting');
+        transformer.nodes([overlayImage]);
         layer.draw();
       }
     });
@@ -623,7 +562,6 @@ document.addEventListener('DOMContentLoaded', () => {
       stage.width(containerWidth);
       stage.height(containerHeight);
       stage.draw();
-      console.log('Resized stage to:', containerWidth, containerHeight);
     });
     
     // Initial resize
@@ -644,13 +582,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('Drawing NFT background:', selectedNFT);
 
-    // Remove previous background if exists
     if (backgroundImage) {
       backgroundImage.remove();
       backgroundImage = null;
     }
 
-    // Load NFT image
     const nftImg = new Image();
     nftImg.src = selectedNFT;
     nftImg.crossOrigin = 'Anonymous';
@@ -658,7 +594,6 @@ document.addEventListener('DOMContentLoaded', () => {
     nftImg.onload = () => {
       console.log('NFT image loaded, dimensions:', nftImg.width, nftImg.height);
       
-      // Create background image with NFT
       backgroundImage = new Konva.Image({
         image: nftImg,
         width: stage.width(),
@@ -678,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Update overlay image
+  // Update Overlay Image - ENHANCED FOR DESKTOP WITH CONSISTENT DRAG
   function updateOverlayImage(src) {
     if (!selectedNFT || !stage) {
       console.log('No NFT selected or stage not initialized');
@@ -687,78 +622,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('Updating overlay image:', src);
 
-    // Remove previous overlay if exists
+    // Remove existing overlay
     if (overlayImage) {
       overlayImage.remove();
       overlayImage = null;
     }
+    
+    // Reset transformer
+    transformer.nodes([]);
+    layer.draw();
 
     if (!src || src === window.location.href) {
       console.log('No valid overlay source');
-      layer.draw();
       return;
     }
 
-    // Load overlay image
     const overlay = new Image();
     overlay.crossOrigin = 'Anonymous';
     overlay.src = src;
-    
+
     overlay.onload = () => {
       console.log('Overlay image loaded, dimensions:', overlay.width, overlay.height);
-      
-      // Calculate size to maintain aspect ratio
-      let overlayWidth = stage.width() / 2;
-      let overlayHeight = (overlay.height / overlay.width) * overlayWidth;
-      
-      // Create overlay with Konva
-      overlayImage = new Konva.Image({
+
+      // Calculate size to fit within 50% of stage
+      const maxWidth = stage.width() * 0.5;
+      const aspectRatio = overlay.height / overlay.width;
+      let overlayWidth = maxWidth;
+      let overlayHeight = overlayWidth * aspectRatio;
+
+      // Adjust if overlay is too tall
+      if (overlayHeight > stage.height() * 0.5) {
+        overlayHeight = stage.height() * 0.5;
+        overlayWidth = overlayHeight / aspectRatio;
+      }
+
+      // Create a simple image - no groups, no hit detection tricks
+      const image = new Konva.Image({
         image: overlay,
         width: overlayWidth,
         height: overlayHeight,
-        x: stage.width() / 4,
-        y: stage.height() / 4,
-        draggable: true,
+        x: stage.width() / 2 - overlayWidth / 2,
+        y: stage.height() / 2 - overlayHeight / 2,
+        draggable: true
       });
+
+      // Add the image to the layer
+      layer.add(image);
       
-      console.log('Konva overlay image created with dimensions:', overlayWidth, overlayHeight);
+      // Store reference to the image
+      overlayImage = image;
       
-      // Add overlay to layer
-      layer.add(overlayImage);
-      
-      // Add click handler to select overlay
-      overlayImage.on('click tap', function(e) {
-        console.log('Overlay clicked/tapped');
-        // Prevent event bubbling
-        e.cancelBubble = true;
-        
-        // Select this overlay with transformer
-        transformer.nodes([overlayImage]);
-        layer.draw();
-      });
-      
-      // Add drag handlers for better mobile experience
-      overlayImage.on('dragstart', function() {
-        console.log('Drag started on overlay');
-        transformer.nodes([overlayImage]);
-      });
-      
-      overlayImage.on('dragmove', function() {
-        console.log('Dragging overlay, position:', overlayImage.x(), overlayImage.y());
-      });
-      
-      overlayImage.on('dragend', function() {
-        console.log('Drag ended on overlay');
-        layer.draw();
-      });
-      
-      // Set initial transformer
-      transformer.nodes([overlayImage]);
+      // Select the image with transformer
+      transformer.nodes([image]);
       layer.draw();
       
-      console.log('Overlay added and transformer attached');
+      // Add click handler to the image
+      image.on('click tap', function(e) {
+        e.cancelBubble = true;
+        transformer.nodes([image]);
+        layer.draw();
+      });
+      
+      // Add click handler to the stage
+      stage.off('click tap');
+      stage.on('click tap', function(e) {
+        if (e.target === stage || e.target === backgroundImage) {
+          transformer.nodes([]);
+          layer.draw();
+        }
+      });
+      
+      console.log('Simple overlay added');
     };
-    
+
     overlay.onerror = () => {
       console.error('Failed to load overlay image:', src);
     };
@@ -810,23 +746,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Fetch NFTs using Mirror Node REST API with pagination
+  // Fetch NFTs
   async function fetchNFTs(accountId) {
     console.log('Fetching NFTs for account:', accountId);
     try {
       const nftList = document.getElementById('nft-list');
       if (nftList) nftList.innerHTML = '<p class="nft-placeholder">Loading NFTs...</p>';
       
-      // Reset the NFT array to prevent duplicates
       allNFTs = [];
       let nextLink = null;
       
-      // Fetch regular NFTs with pagination
       try {
-        // First page - use smaller limit to avoid timeout issues
         let url = `https://mainnet.mirrornode.hedera.com/api/v1/accounts/${accountId}/nfts?limit=50`;
         
-        // Keep fetching until there are no more pages
         do {
           console.log(`Fetching NFTs from: ${url}`);
           const response = await fetch(url);
@@ -835,11 +767,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             const newNFTs = data.nfts || [];
             
-            // Add new NFTs to our array
             allNFTs = [...allNFTs, ...newNFTs];
             console.log(`Fetched ${newNFTs.length} more NFTs, total now: ${allNFTs.length}`);
             
-            // Check if there's a next page
             nextLink = data.links && data.links.next;
             url = nextLink ? `https://mainnet.mirrornode.hedera.com${nextLink}` : null;
           } else {
@@ -850,7 +780,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log(`Total NFTs fetched: ${allNFTs.length}`);
         
-        // Check for specific collections with correct token IDs
         const wildTigers = allNFTs.filter(nft => nft.token_id === '0.0.6024491');
         const fugitivesTeam = allNFTs.filter(nft => nft.token_id === '0.0.963963');
         const emrakCubit = allNFTs.filter(nft => nft.token_id === '0.0.732384');
@@ -859,7 +788,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Fugitives Team found:', fugitivesTeam.length);
         console.log('Emrak (Cubit) found:', emrakCubit.length);
         
-        // Process Hashinals
         let hashinalCount = 0;
         for (const nft of allNFTs) {
           if (nft.metadata) {
@@ -867,14 +795,11 @@ document.addEventListener('DOMContentLoaded', () => {
               const metadataStr = atob(nft.metadata);
               if (metadataStr.startsWith('hcs://')) {
                 hashinalCount++;
-                // Extract the topic ID from the HCS URL and remove the "1/" prefix if present
                 let topicId = metadataStr.replace('hcs://', '');
-                // Remove the "1/" prefix if present
                 if (topicId.startsWith('1/')) {
                   topicId = topicId.replace('1/', '');
                 }
                 console.log(`Found Hashinal with topic_id: ${topicId}`);
-                // Store the clean topic_id in the NFT object for later use
                 nft.topic_id = topicId;
               }
             } catch (e) {
@@ -884,7 +809,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         console.log(`Identified ${hashinalCount} Hashinals from metadata`);
         
-        // Only call displayNFTPage once
         displayNFTPage(1);
       } catch (error) {
         console.error('Error fetching regular NFTs:', error);
@@ -898,13 +822,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // New function to display a specific page of NFTs
+  // Display NFT page
   async function displayNFTPage(page) {
     console.log(`Displaying NFT page ${page}`);
     const nftList = document.getElementById('nft-list');
     if (!nftList) return;
     
-    // Clear previous content
     nftList.innerHTML = '';
     
     if (allNFTs.length === 0) {
@@ -912,21 +835,17 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    // Create a loading indicator
     const loadingIndicator = document.createElement('p');
     loadingIndicator.className = 'nft-placeholder';
     loadingIndicator.textContent = `Loading ${allNFTs.length} NFTs...`;
     nftList.appendChild(loadingIndicator);
     
-    // Use a more efficient approach - process in batches
     const batchSize = 5;
     const totalNFTs = allNFTs.length;
     let processedCount = 0;
     let hashinalProcessed = 0;
     
-    // Process NFTs in batches to avoid overwhelming the browser
     async function processBatch(startIndex) {
-      // Remove loading indicator once we start processing
       if (startIndex === 0) {
         nftList.removeChild(loadingIndicator);
       }
@@ -936,22 +855,19 @@ document.addEventListener('DOMContentLoaded', () => {
       for (let i = startIndex; i < endIndex; i++) {
         const nft = allNFTs[i];
         try {
-          let imageUrl = "";  // Default to empty string, not a placeholder
+          let imageUrl = "";
           let nftName = `NFT #${nft.serial_number}`;
           let isHashinal = false;
           
-          // Check if this is a Hashinal (has topic_id)
           if (nft.topic_id) {
             console.log(`Processing Hashinal with topic_id: ${nft.topic_id}`);
             
             try {
-              // Use getHashinalImageUrl to get the proxied URL
               imageUrl = await getHashinalImageUrl(nft.topic_id);
               nftName = `Hashinal #${nft.serial_number}`;
               isHashinal = true;
               hashinalProcessed++;
               
-              // Create NFT element with special attributes for Hashinals
               const nftElement = document.createElement('div');
               nftElement.className = 'nft-item';
               nftElement.dataset.serial = nft.serial_number;
@@ -959,7 +875,6 @@ document.addEventListener('DOMContentLoaded', () => {
               nftElement.dataset.hashinal = 'true';
               nftElement.dataset.topicId = nft.topic_id;
 
-              // For Hashinals, use a placeholder initially and then try to load the actual image
               const placeholderUrl = `https://placehold.co/150x150/orange/white?text=HASHINAL-${nft.topic_id.substring(0, 8)}`;
               nftElement.innerHTML = `
                 <img 
@@ -976,10 +891,8 @@ document.addEventListener('DOMContentLoaded', () => {
               nftList.appendChild(nftElement);
               processedCount++;
 
-              // Try to load the actual image asynchronously
               getHashinalImageUrl(nft.topic_id)
                 .then(imageUrl => {
-                  // Find the image element we just created and update its src
                   const imgElement = nftElement.querySelector('img');
                   if (imgElement) {
                     imgElement.src = imageUrl;
@@ -987,33 +900,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
                 .catch(error => {
                   console.error(`Failed to load Hashinal image: ${error.message}`);
-                  // The placeholder remains if loading fails
                 });
 
-              continue; // Skip the rest of the loop for Hashinals
+              continue;
             } catch (error) {
               console.error(`Error processing Hashinal: ${error.message}`);
-              // Continue with default handling if there's an error
             }
           }
-          // Regular NFT with metadata
           else if (nft.metadata) {
             try {
-              // Decode the base64 metadata
               const metadataStr = atob(nft.metadata);
               
-              // Check again for HCS metadata (in case we missed it in the first pass)
               if (metadataStr.startsWith('hcs://')) {
                 const topicId = metadataStr.replace('hcs://', '');
                 console.log(`Found HCS token with topic_id: ${topicId}`);
                 
-                // Use getHashinalImageUrl to get the proxied URL
                 imageUrl = await getHashinalImageUrl(topicId);
                 nftName = `Hashinal #${nft.serial_number}`;
                 isHashinal = true;
                 hashinalProcessed++;
               }
-              // Handle other metadata formats as before
               else if (metadataStr.startsWith('ipfs://')) {
                 try {
                   const metadata = await loadFromIPFS(metadataStr);
@@ -1021,7 +927,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (metadata.image.startsWith('ipfs://')) {
                       imageUrl = await getImageUrlFromIPFS(metadata.image);
                     } else {
-                      // Ensure the URL is properly encoded
                       imageUrl = encodeImageUrl(metadata.image);
                     }
                   }
@@ -1032,18 +937,15 @@ document.addEventListener('DOMContentLoaded', () => {
                   console.error(`Error loading IPFS metadata: ${e.message}`);
                 }
               } else {
-                // Try parsing as JSON
                 try {
                   const metadata = JSON.parse(metadataStr);
                   if (metadata.image) {
                     if (metadata.image.startsWith('ipfs://')) {
                       imageUrl = await getImageUrlFromIPFS(metadata.image);
                     } else {
-                      // Handle URLs with special characters
                       imageUrl = encodeImageUrl(metadata.image);
                     }
                   } else if (metadata.media) {
-                    // Some NFTs use 'media' instead of 'image'
                     if (metadata.media.startsWith('ipfs://')) {
                       imageUrl = await getImageUrlFromIPFS(metadata.media);
                     } else {
@@ -1054,7 +956,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     nftName = metadata.name;
                   }
                 } catch (e) {
-                  // Not JSON, might be a direct URL
                   if (metadataStr.startsWith('http')) {
                     imageUrl = encodeImageUrl(metadataStr);
                   }
@@ -1065,7 +966,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
           
-          // Create NFT element
           const nftElement = document.createElement('div');
           nftElement.className = 'nft-item';
           nftElement.dataset.serial = nft.serial_number;
@@ -1075,7 +975,6 @@ document.addEventListener('DOMContentLoaded', () => {
             nftElement.dataset.topicId = nft.topic_id || metadataStr?.replace('hcs://', '');
           }
           
-          // Simplified HTML for all NFTs including Hashinals
           nftElement.innerHTML = `
             <img 
               src="${imageUrl}" 
@@ -1096,20 +995,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
-      // Update progress
       if (processedCount < totalNFTs) {
-        // Process next batch
         setTimeout(() => processBatch(endIndex), 10);
       } else {
         console.log(`Finished loading all ${processedCount} NFTs, including ${hashinalProcessed} Hashinals`);
       }
     }
     
-    // Start processing the first batch
     processBatch(0);
   }
 
-  // Select NFT for overlay
+  // Select NFT
   window.selectNFT = function (img) {
     console.log('NFT selected:', img.src);
     selectedNFT = img.src;
@@ -1118,23 +1014,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvasPlaceholder = document.getElementById('nft-display')?.querySelector('.canvas-placeholder');
     if (canvasPlaceholder) canvasPlaceholder.style.display = 'none';
     
-    // Draw NFT background
     drawNFTBackground();
     
-    // Check if there's already an overlay image selected
     const overlayImg = document.getElementById('overlay-img');
     if (overlayImg && overlayImg.src && overlayImg.src !== window.location.href) {
       updateOverlayImage(overlayImg.src);
     }
   };
 
-  // Start WalletConnect initialization
   initializeWalletConnect();
 });
 
-// Add this function to create a mobile-friendly image share modal
+// Image share modal
 function showImageShareModal(imageDataURL) {
-  // Create modal container
   const modalContainer = document.createElement('div');
   modalContainer.style.position = 'fixed';
   modalContainer.style.top = '0';
@@ -1149,7 +1041,6 @@ function showImageShareModal(imageDataURL) {
   modalContainer.style.justifyContent = 'center';
   modalContainer.style.padding = '20px';
   
-  // Create image element
   const imageElement = document.createElement('img');
   imageElement.src = imageDataURL;
   imageElement.style.maxWidth = '90%';
@@ -1158,13 +1049,11 @@ function showImageShareModal(imageDataURL) {
   imageElement.style.borderRadius = '8px';
   imageElement.style.marginBottom = '20px';
   
-  // Create save button
   const saveButton = document.createElement('button');
   saveButton.textContent = 'Save to Photos';
   saveButton.className = 'btn';
   saveButton.style.marginBottom = '10px';
   saveButton.addEventListener('click', () => {
-    // Create an invisible link and click it
     const link = document.createElement('a');
     link.href = imageDataURL;
     link.download = 'overlayz-nft.png';
@@ -1173,7 +1062,6 @@ function showImageShareModal(imageDataURL) {
     document.body.removeChild(link);
   });
   
-  // Create close button
   const closeButton = document.createElement('button');
   closeButton.textContent = 'Close';
   closeButton.className = 'btn';
@@ -1182,15 +1070,12 @@ function showImageShareModal(imageDataURL) {
     document.body.removeChild(modalContainer);
   });
   
-  // Add elements to modal
   modalContainer.appendChild(imageElement);
   modalContainer.appendChild(saveButton);
   modalContainer.appendChild(closeButton);
   
-  // Add modal to body
   document.body.appendChild(modalContainer);
   
-  // Also add tap to close
   modalContainer.addEventListener('click', (e) => {
     if (e.target === modalContainer) {
       document.body.removeChild(modalContainer);
@@ -1198,7 +1083,7 @@ function showImageShareModal(imageDataURL) {
   });
 }
 
-// Add this function to help diagnose specific NFT issues
+// Log NFT details
 function logNFTDetails(nft) {
   console.log(`NFT Details for ${nft.token_id}#${nft.serial_number}:`);
   console.log('- Token ID:', nft.token_id);
@@ -1210,7 +1095,6 @@ function logNFTDetails(nft) {
       const decodedMetadata = atob(nft.metadata);
       console.log('- Decoded Metadata:', decodedMetadata.substring(0, 100) + '...');
       
-      // Try to parse as JSON if it looks like JSON
       if (decodedMetadata.trim().startsWith('{')) {
         try {
           const jsonMetadata = JSON.parse(decodedMetadata);
