@@ -69,10 +69,18 @@ body {
   z-index: 1;
 }
 
-.header .overlayz-logo img {
+/* .header .overlayz-logo img {
   height: 40px;
   width: auto;
   padding-top: 5px;
+}
+ */
+
+.header .overlayz-logo h1 {
+  font-family: cc-phat-boi-bold,
+    sans-serif;
+  font-style: normal;
+  font-weight: 700;
 }
 
 .header .nav-connect-button {
@@ -119,8 +127,10 @@ main .wallet-section h2 {
   font-size: 2.5rem;
   margin-bottom: 20px;
   background: linear-gradient(90deg, #00ff40, #008020);
-  background-clip: text; /* Add unprefixed property */
-  -webkit-background-clip: text; /* Keep vendor prefix */
+  background-clip: text;
+  /* Add unprefixed property */
+  -webkit-background-clip: text;
+  /* Keep vendor prefix */
   -webkit-text-fill-color: transparent;
   text-shadow: 0 0 10px rgba(0, 255, 64, 0.5);
 }
@@ -204,8 +214,10 @@ main #wallet-status {
   font-family: 'Lethal Slime', sans-serif;
   font-size: 3rem;
   background: linear-gradient(90deg, #00ff40, #008020);
-  background-clip: text; /* Add unprefixed property */
-  -webkit-background-clip: text; /* Keep vendor prefix */
+  background-clip: text;
+  /* Add unprefixed property */
+  -webkit-background-clip: text;
+  /* Keep vendor prefix */
   -webkit-text-fill-color: transparent;
 }
 
@@ -356,13 +368,15 @@ main #wallet-status {
 .nft-display .konvajs-content {
   width: 100% !important;
   height: 100% !important;
-  touch-action: none; /* Changed from pinch-zoom to none to prevent browser gestures */
+  touch-action: none;
+  /* Changed from pinch-zoom to none to prevent browser gestures */
 }
 
 .nft-display .konvajs-content canvas {
   width: 100% !important;
   height: 100% !important;
-  user-select: none; /* Prevent text selection during drag */
+  user-select: none;
+  /* Prevent text selection during drag */
 }
 
 /* Enhance transformer visibility and touch-friendliness */
@@ -391,6 +405,7 @@ main #wallet-status {
 .konva-Transformer-rotationHandle {
   fill: #00ff40 !important;
 }
+
 /* === END MODIFIED SECTION === */
 
 .canvas-placeholder {
@@ -459,32 +474,18 @@ main #wallet-status {
   justify-content: center;
 }
 
-.footer .creator .credit-head {
-  font-size: 25px;
+.credit-head {
+  font-size: 20px;
   font-weight: bold;
+  text-align: center;
   color: #00ff40;
-}
-
-.footer .creator div {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  justify-content: center;
-  padding: 20px;
-  border-radius: 10px;
-  margin-top: 20px;
-  background-color: #000000BD;
-}
-
-.footer .creator h3 {
-  color: #FFFFFF;
 }
 
 .footer .credit {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 15px;
+  gap: 10px;
 }
 
 .footer .credit .credit-card {
@@ -492,12 +493,13 @@ main #wallet-status {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px;
+  padding: 5px;
 }
 
 .footer .credit .credit-card a {
   text-decoration: none;
-  color: #FFFFFF;
+  font-size: 16px;
+  color: #ffffff;
 }
 
 .footer .slime-tag {
@@ -508,17 +510,13 @@ main #wallet-status {
   gap: 10px;
 }
 
-.footer .slime-tag img {
-  width: 200px;
-}
-
 .footer .slime-tag .slime-social {
   display: flex;
   gap: 20px;
 }
 
 .footer .slime-tag .slime-social img {
-  width: 30px;
+  width: 20px;
 }
 
 .footer .copyright {
