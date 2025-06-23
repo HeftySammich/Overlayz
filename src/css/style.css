@@ -76,11 +76,10 @@ body {
 }
  */
 
-.header .overlayz-logo h1 {
-  font-family: cc-phat-boi-bold,
-    sans-serif;
-  font-style: normal;
-  font-weight: 700;
+.header .overlayz-logo img {
+  height: 40px;
+  width: auto;
+  padding-top: 5px;
 }
 
 .header .nav-connect-button {
@@ -211,13 +210,14 @@ main #wallet-status {
 
 .nft-section h2,
 .overlay-section h2 {
-  font-family: 'Lethal Slime', sans-serif;
-  font-size: 3rem;
+  font-family: cc-phat-boi-bold,
+    sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 4rem;
   background: linear-gradient(90deg, #00ff40, #008020);
   background-clip: text;
-  /* Add unprefixed property */
   -webkit-background-clip: text;
-  /* Keep vendor prefix */
   -webkit-text-fill-color: transparent;
 }
 
