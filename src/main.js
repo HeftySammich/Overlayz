@@ -1187,7 +1187,49 @@ function showImageShareModal(imageDataURL) {
     link.click();
     document.body.removeChild(link);
   });
-  
+
+  const copyButton = document.createElement('button');
+  copyButton.textContent = 'Copy Image';
+  copyButton.className = 'btn';
+  copyButton.style.marginBottom = '10px';
+  copyButton.addEventListener('click', async () => {
+    try {
+      // Convert data URL to blob
+      const response = await fetch(imageDataURL);
+      const blob = await response.blob();
+
+      // Copy to clipboard using modern Clipboard API
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob
+        })
+      ]);
+
+      // Provide user feedback
+      const originalText = copyButton.textContent;
+      copyButton.textContent = 'Copied!';
+      copyButton.style.background = 'linear-gradient(90deg, #00cc33, #006616)';
+
+      setTimeout(() => {
+        copyButton.textContent = originalText;
+        copyButton.style.background = 'linear-gradient(90deg, #00ff40, #008020)';
+      }, 2000);
+
+    } catch (error) {
+      console.error('Failed to copy image:', error);
+
+      // Fallback: show user a message
+      const originalText = copyButton.textContent;
+      copyButton.textContent = 'Copy Failed';
+      copyButton.style.background = 'linear-gradient(90deg, #ff4040, #cc2020)';
+
+      setTimeout(() => {
+        copyButton.textContent = originalText;
+        copyButton.style.background = 'linear-gradient(90deg, #00ff40, #008020)';
+      }, 2000);
+    }
+  });
+
   const closeButton = document.createElement('button');
   closeButton.textContent = 'Close';
   closeButton.className = 'btn';
@@ -1195,9 +1237,10 @@ function showImageShareModal(imageDataURL) {
   closeButton.addEventListener('click', () => {
     document.body.removeChild(modalContainer);
   });
-  
+
   modalContainer.appendChild(imageElement);
   modalContainer.appendChild(saveButton);
+  modalContainer.appendChild(copyButton);
   modalContainer.appendChild(closeButton);
   
   document.body.appendChild(modalContainer);
