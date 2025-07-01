@@ -24,7 +24,9 @@ function encodeImageUrl(url) {
   return url.replace(/#/g, '%23')
             .replace(/\+/g, '%2B')
             .replace(/\s/g, '%20')
-            .replace(/&/g, '%26');
+            .replace(/&/g, '%26')
+            .replace(/\[/g, '%5B')
+            .replace(/\]/g, '%5D');
 }
 
 // Helper function to try loading from multiple gateways
@@ -75,22 +77,25 @@ async function loadFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
 async function getImageUrlFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
   const hash = ipfsHash.replace('ipfs://', '');
   console.log(`Getting image URL for IPFS hash: ${hash}`);
-  
+
+  // Pre-encode the hash to handle special characters
+  const encodedHash = encodeImageUrl(hash);
+
   for (const gateway of IPFS_GATEWAYS) {
-    const url = gateway + hash;
+    const url = gateway + encodedHash;
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
-      
-      const response = await fetch(url, { 
-        method: 'HEAD', 
-        signal: controller.signal 
+
+      const response = await fetch(url, {
+        method: 'HEAD',
+        signal: controller.signal
       });
       clearTimeout(timeoutId);
-      
+
       if (response.ok) {
         console.log(`Image available at gateway: ${gateway}`);
-        return encodeImageUrl(url);
+        return url;
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
@@ -98,9 +103,9 @@ async function getImageUrlFromIPFS(ipfsHash, timeout = GATEWAY_TIMEOUT) {
       }
     }
   }
-  
+
   console.log(`All gateways failed, using first gateway as fallback for: ${hash}`);
-  return encodeImageUrl(IPFS_GATEWAYS[0] + hash);
+  return IPFS_GATEWAYS[0] + encodedHash;
 }
 
 // Function to get Hashinal image URL using Kiloscribe CDN
@@ -108,104 +113,96 @@ async function getHashinalImageUrl(topicId) {
   if (topicId.startsWith('1/')) {
     topicId = topicId.replace('1/', '');
   }
-  
-  console.log(`Processing Hashinal with topic_id: "${topicId}"`);
-  
-  const corsProxy = 'https://corsproxy.io/?';
-  
-  try {
-    const cdnUrl = `${corsProxy}https://kiloscribe.com/api/inscription-cdn/${topicId}`;
-    console.log(`Fetching Hashinal from CDN: ${cdnUrl}`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-    
-    const response = await fetch(cdnUrl, { 
-      signal: controller.signal,
-      method: 'GET'
-    });
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`CDN HTTP error: ${response.status}`);
-    }
-    
-    const contentType = response.headers.get('content-type');
-    console.log(`Content type: ${contentType}`);
-    
-    if (contentType && contentType.includes('image')) {
-      const blob = await response.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } else if (contentType && contentType.includes('application/json')) {
-      const data = await response.json();
-      console.log(`Received JSON data:`, data);
 
-      if (data.image) {
-        if (data.image.includes('hcs://')) {
-          const hcsTopicId = data.image.match(/hcs:\/\/(?:1\/)?([0-9.]+)/)?.[1];
-          if (hcsTopicId) {
-            console.log(`Found HCS topic ID in image URL: ${hcsTopicId}`);
-            return getHashinalImageUrl(hcsTopicId);
-          }
-        }
-        
-        let imageUrl;
-        if (data.image.startsWith('http')) {
-          imageUrl = data.image;
-        } else if (data.image.startsWith('/')) {
-          imageUrl = `https://kiloscribe.com${data.image}`;
-        } else {
-          imageUrl = `https://kiloscribe.com/${data.image}`;
-        }
-        
-        console.log(`Found image URL in JSON: ${imageUrl}`);
-        
-        const imageResponse = await fetch(`${corsProxy}${imageUrl}`);
-        if (!imageResponse.ok) {
-          throw new Error(`Image fetch error: ${imageResponse.status}`);
-        }
-        
-        const blob = await imageResponse.blob();
+  console.log(`Processing Hashinal with topic_id: "${topicId}"`);
+
+  // Try multiple CORS proxies for better reliability
+  const corsProxies = [
+    'https://corsproxy.io/?',
+    ''  // Direct request as fallback
+  ];
+
+  // Try each CORS proxy in sequence
+  for (const corsProxy of corsProxies) {
+    try {
+      const cdnUrl = `${corsProxy}https://kiloscribe.com/api/inscription-cdn/${topicId}?network=mainnet`;
+      console.log(`Fetching Hashinal from CDN: ${cdnUrl}`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(cdnUrl, {
+        signal: controller.signal,
+        method: 'GET'
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`CDN HTTP error: ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      console.log(`Content type: ${contentType}`);
+
+      if (contentType && contentType.includes('image')) {
+        const blob = await response.blob();
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result);
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
+      } else if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log(`Received JSON data:`, data);
+
+        if (data.image) {
+          if (data.image.includes('hcs://')) {
+            const hcsTopicId = data.image.match(/hcs:\/\/(?:1\/)?([0-9.]+)/)?.[1];
+            if (hcsTopicId) {
+              console.log(`Found HCS topic ID in image URL: ${hcsTopicId}`);
+              return getHashinalImageUrl(hcsTopicId);
+            }
+          }
+
+          let imageUrl;
+          if (data.image.startsWith('http')) {
+            imageUrl = data.image;
+          } else if (data.image.startsWith('/')) {
+            imageUrl = `https://kiloscribe.com${data.image}`;
+          } else {
+            imageUrl = `https://kiloscribe.com/${data.image}`;
+          }
+
+          console.log(`Found image URL in JSON: ${imageUrl}`);
+
+          const imageResponse = await fetch(`${corsProxy}${imageUrl}`);
+          if (!imageResponse.ok) {
+            throw new Error(`Image fetch error: ${imageResponse.status}`);
+          }
+
+          const blob = await imageResponse.blob();
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } else {
+          throw new Error('No image URL found in JSON response');
+        }
       } else {
-        throw new Error('No image URL found in JSON response');
+        throw new Error(`Unsupported content type: ${contentType}`);
       }
-    } else {
-      throw new Error(`Unsupported content type: ${contentType}`);
-    }
-  } catch (error) {
-    console.error(`Error fetching from Kiloscribe CDN: ${error.message}`);
-    
-    try {
-      const directImageUrl = `${corsProxy}https://kiloscribe.com/api/inscription-image/${topicId}`;
-      console.log(`Trying direct image URL: ${directImageUrl}`);
-      
-      const directResponse = await fetch(directImageUrl);
-      if (directResponse.ok) {
-        const blob = await directResponse.blob();
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        });
-      } else {
-        throw new Error(`Direct image HTTP error: ${directResponse.status}`);
-      }
-    } catch (directError) {
-      console.error(`Error with direct image approach: ${directError.message}`);
-      return `https://placehold.co/150x150/orange/white?text=HASHINAL-${topicId.split('.').pop().substring(0, 8)}`;
+    } catch (error) {
+      console.error(`Error with proxy ${corsProxy}: ${error.message}`);
+      // Continue to next proxy
     }
   }
+
+  // If all proxies failed, try direct image endpoint
+  console.log(`All CDN attempts failed, trying direct image endpoint`);
+  return `https://placehold.co/150x150/orange/white?text=HASHINAL-${topicId.split('.').pop().substring(0, 8)}`;
 }
 
 // Download and convert image to data URL
@@ -306,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Preset overlays
       console.log('Setting up overlay buttons');
-      ['overlay1', 'overlay2', 'overlay3', 'overlay4', 'overlay5', 'overlay6', 'overlay7'].forEach((id, index) => {
+      ['overlay1', 'overlay2', 'overlay3', 'overlay4', 'overlay5', 'overlay6', 'overlay7', 'overlay8'].forEach((id, index) => {
         const button = document.getElementById(id);
         if (button) {
           button.addEventListener('click', () => {
@@ -317,9 +314,12 @@ document.addEventListener('DOMContentLoaded', () => {
               '/assets/arts/Bonjour.Overlay.png',
               '/assets/arts/Sign.Overlay.png',
               '/assets/arts/Goodnight.Overlay.png',
-              ''
+              '/assets/arts/Coffee.Overlay.png',
+              '/assets/arts/paws_token-2.png'
             ];
-            if (index < 6) {
+            
+            // Make sure we have a valid overlay for this button
+            if (index < overlays.length) {
               const overlayImg = document.getElementById('overlay-img');
               overlayImg.src = overlays[index];
               console.log(`Overlay button ${id} clicked, setting overlay to ${overlays[index]}`);
@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Initialize Konva stage - SIMPLIFIED VERSION
+  // Initialize Konva stage - IMPROVED VERSION
   function initKonvaStage() {
     console.log('Initializing Konva stage');
     const container = document.getElementById('nft-display');
@@ -510,65 +510,93 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clear any existing content
     container.innerHTML = '';
-    
-    // Create Konva stage
+
+    // Get container dimensions for responsive sizing
+    const containerWidth = container.clientWidth || 400;
+    const containerHeight = container.clientHeight || 400;
+
+    // Create Konva stage with responsive dimensions
     stage = new Konva.Stage({
       container: 'nft-display',
-      width: 400,
-      height: 400,
+      width: containerWidth,
+      height: containerHeight,
     });
-    
+
     console.log('Konva stage created with dimensions:', stage.width(), stage.height());
 
     // Create layer
     layer = new Konva.Layer();
     stage.add(layer);
     
-    // Create transformer
+    // Detect if mobile device
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    // Create transformer with WORKING configuration
     transformer = new Konva.Transformer({
       nodes: [],
-      enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-      borderStroke: '#00ff40',
-      borderStrokeWidth: 2,
-      anchorStroke: '#00ff40',
-      anchorFill: '#000',
-      anchorSize: 12,
-      rotateEnabled: true,
-      resizeEnabled: true,
-      keepRatio: true
+      enabledAnchors: isMobile ? [] : ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+      borderStroke: isMobile ? 'transparent' : '#00ff40',
+      borderStrokeWidth: isMobile ? 0 : 2,
+      anchorStroke: isMobile ? 'transparent' : '#00ff40',
+      anchorFill: isMobile ? 'transparent' : '#000',
+      anchorSize: isMobile ? 0 : 10,
+      anchorStrokeWidth: isMobile ? 0 : 2,
+      rotateEnabled: !isMobile,
+      resizeEnabled: !isMobile,
+      keepRatio: true,
+      rotateAnchorOffset: isMobile ? 0 : 25,
+      ignoreStroke: true,
+      visible: !isMobile,
+      borderEnabled: !isMobile,
+      padding: 0
     });
-    
+
     layer.add(transformer);
-    
-    // Stage click handler for deselection
-    stage.on('click tap', function(e) {
-      // Only deselect if clicking directly on stage or background
-      if (e.target === stage || e.target === backgroundImage) {
-        console.log('Stage clicked, deselecting transformer');
+
+    // CLEANED UP STAGE EVENT HANDLER - remove existing first to prevent accumulation
+    stage.off('click tap'); // Remove any existing handlers
+
+    stage.on('click tap', function (e) {
+      console.log('=== CLICK DIAGNOSTIC ===');
+      console.log('Click target:', e.target.constructor.name);
+      console.log('Target name:', e.target.name ? e.target.name() : 'no-name');
+      console.log('Target draggable:', e.target.draggable ? e.target.draggable() : 'no-draggable-property');
+      console.log('Target listening:', e.target.listening ? e.target.listening() : 'no-listening-property');
+      console.log('Is stage?', e.target === stage);
+      console.log('Has overlay name?', e.target.hasName ? e.target.hasName('overlay') : 'no-hasName-method');
+
+      // if click on empty area - remove all selections
+      if (e.target === stage) {
         transformer.nodes([]);
         layer.draw();
-      } else if (e.target === overlayImage) {
-        // Ensure overlay is selectable by clicking anywhere on it
-        console.log('Overlay clicked, selecting');
-        transformer.nodes([overlayImage]);
-        layer.draw();
+        console.log('Clicked on empty area - deselecting');
+        return;
       }
+
+      // do nothing if clicked NOT on our overlay
+      if (!e.target.hasName('overlay')) {
+        console.log('Clicked on non-overlay object');
+        return;
+      }
+
+      // select the overlay
+      transformer.nodes([e.target]);
+      layer.draw();
+      console.log('Overlay selected via click');
     });
     
-    // Handle window resize
-    window.addEventListener('resize', () => {
-      const containerWidth = container.clientWidth;
-      const containerHeight = container.clientHeight;
-      stage.width(containerWidth);
-      stage.height(containerHeight);
+    // Handle window resize - CLEANED UP (remove existing first)
+    const handleResize = () => {
+      const newWidth = container.clientWidth;
+      const newHeight = container.clientHeight;
+      stage.width(newWidth);
+      stage.height(newHeight);
       stage.draw();
-    });
-    
-    // Initial resize
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-    stage.width(containerWidth);
-    stage.height(containerHeight);
+    };
+
+    // Remove any existing resize listeners to prevent accumulation
+    window.removeEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize);
     
     console.log('Konva stage initialized with size:', containerWidth, containerHeight);
   }
@@ -593,19 +621,39 @@ document.addEventListener('DOMContentLoaded', () => {
     
     nftImg.onload = () => {
       console.log('NFT image loaded, dimensions:', nftImg.width, nftImg.height);
-      
+
+      // Calculate proper scaling to fill the stage while maintaining aspect ratio
+      const stageWidth = stage.width();
+      const stageHeight = stage.height();
+      const imageAspectRatio = nftImg.width / nftImg.height;
+      const stageAspectRatio = stageWidth / stageHeight;
+
+      let finalWidth, finalHeight, offsetX = 0, offsetY = 0;
+
+      if (imageAspectRatio > stageAspectRatio) {
+        // Image is wider than stage - fit to height
+        finalHeight = stageHeight;
+        finalWidth = finalHeight * imageAspectRatio;
+        offsetX = (stageWidth - finalWidth) / 2;
+      } else {
+        // Image is taller than stage - fit to width
+        finalWidth = stageWidth;
+        finalHeight = finalWidth / imageAspectRatio;
+        offsetY = (stageHeight - finalHeight) / 2;
+      }
+
       backgroundImage = new Konva.Image({
         image: nftImg,
-        width: stage.width(),
-        height: stage.height(),
-        x: 0,
-        y: 0,
+        width: finalWidth,
+        height: finalHeight,
+        x: offsetX,
+        y: offsetY,
       });
-      
+
       layer.add(backgroundImage);
       backgroundImage.moveToBottom();
       layer.draw();
-      console.log('NFT background image added to layer');
+      console.log('NFT background image added to layer with proper scaling');
     };
     
     nftImg.onerror = () => {
@@ -614,7 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Update Overlay Image - ENHANCED FOR DESKTOP WITH CONSISTENT DRAG
-  function updateOverlayImage(src) {
+  async function updateOverlayImage(src) {
     if (!selectedNFT || !stage) {
       console.log('No NFT selected or stage not initialized');
       return;
@@ -622,14 +670,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('Updating overlay image:', src);
 
-    // Remove existing overlay
+    // ENHANCED CLEANUP - Complete state reset between overlays
     if (overlayImage) {
-      overlayImage.remove();
+      console.log('=== CLEANUP DIAGNOSTIC START ===');
+      console.log('Before cleanup - overlayImage properties:');
+      console.log('  - draggable:', overlayImage.draggable());
+      console.log('  - listening:', overlayImage.listening());
+      console.log('  - name:', overlayImage.name());
+      console.log('Before cleanup - transformer nodes:', transformer.nodes().length);
+
+      // Remove any event listeners from the overlay
+      overlayImage.off(); // Remove ALL event listeners
+
+      // Detach from transformer first
+      transformer.nodes([]);
+      console.log('After transformer detach - nodes:', transformer.nodes().length);
+
+      // Destroy the overlay completely
+      overlayImage.destroy();
       overlayImage = null;
+      console.log('Previous overlay destroyed');
+
+      // Force layer redraw to clear everything
+      layer.draw();
+      console.log('Layer children after cleanup:', layer.children.length);
+
+      // Small delay to ensure cleanup is complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+      console.log('=== CLEANUP DIAGNOSTIC END ===');
     }
-    
-    // Reset transformer
+
+    // COMPLETE transformer reset
     transformer.nodes([]);
+    transformer.forceUpdate();
+
+    // Clear any cached transformer state
+    transformer.getLayer().batchDraw();
     layer.draw();
 
     if (!src || src === window.location.href) {
@@ -656,43 +732,47 @@ document.addEventListener('DOMContentLoaded', () => {
         overlayWidth = overlayHeight / aspectRatio;
       }
 
-      // Create a simple image - no groups, no hit detection tricks
+      // Create overlay image using OFFICIAL KONVA PATTERN
       const image = new Konva.Image({
         image: overlay,
         width: overlayWidth,
         height: overlayHeight,
         x: stage.width() / 2 - overlayWidth / 2,
         y: stage.height() / 2 - overlayHeight / 2,
-        draggable: true
+        draggable: true,
+        name: 'overlay'  // Important for selection logic
       });
 
-      // Add the image to the layer
+      // Add to layer
       layer.add(image);
-      
-      // Store reference to the image
+
+      // Store reference
       overlayImage = image;
-      
-      // Select the image with transformer
+
+      // Select immediately with COMPREHENSIVE debugging
       transformer.nodes([image]);
       layer.draw();
-      
-      // Add click handler to the image
-      image.on('click tap', function(e) {
-        e.cancelBubble = true;
-        transformer.nodes([image]);
-        layer.draw();
-      });
-      
-      // Add click handler to the stage
-      stage.off('click tap');
-      stage.on('click tap', function(e) {
-        if (e.target === stage || e.target === backgroundImage) {
-          transformer.nodes([]);
-          layer.draw();
-        }
-      });
-      
-      console.log('Simple overlay added');
+
+      console.log('=== OVERLAY DIAGNOSTIC START ===');
+      console.log('Overlay created using official Konva pattern - ready for interaction');
+      console.log('Image properties:');
+      console.log('  - draggable:', image.draggable());
+      console.log('  - listening:', image.listening());
+      console.log('  - visible:', image.visible());
+      console.log('  - name:', image.name());
+      console.log('  - x:', image.x(), 'y:', image.y());
+      console.log('  - width:', image.width(), 'height:', image.height());
+      console.log('  - scaleX:', image.scaleX(), 'scaleY:', image.scaleY());
+      console.log('Transformer state:');
+      console.log('  - nodes count:', transformer.nodes().length);
+      console.log('  - visible:', transformer.visible());
+      console.log('  - listening:', transformer.listening());
+      console.log('Layer state:');
+      console.log('  - children count:', layer.children.length);
+      console.log('  - listening:', layer.listening());
+      console.log('Stage state:');
+      console.log('  - listening:', stage.listening());
+      console.log('=== OVERLAY DIAGNOSTIC END ===');
     };
 
     overlay.onerror = () => {

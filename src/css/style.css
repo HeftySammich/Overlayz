@@ -12,7 +12,7 @@
 
 @font-face {
   font-family: 'Lethal Slime';
-  src: url('/public/assets/fonts/Lethal Slime.ttf') format('truetype');
+  src: url('/assets/fonts/Lethal Slime.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
@@ -40,7 +40,7 @@ body {
   padding: 0;
   height: 100vh;
   width: 100vw;
-  background: url("/public/assets/Overlayz_App_Icon.png") no-repeat center center;
+  background: url("/assets/Overlayz_App_Icon.png") no-repeat center center;
   background-size: cover;
   font-family: Arial, sans-serif;
 }
@@ -389,7 +389,7 @@ main #wallet-status {
   user-select: none !important;
 }
 
-/* Make transformer more visible */
+/* FIXED transformer for proper drag/resize separation */
 .konva-Transformer-node {
   border: 2px solid #00ff40 !important;
 }
@@ -398,12 +398,30 @@ main #wallet-status {
   fill: #000 !important;
   stroke: #00ff40 !important;
   stroke-width: 2px !important;
+  width: 10px !important;  /* SMALLER for corner-only resize */
+  height: 10px !important;
+  cursor: nw-resize !important;  /* Clear resize cursor */
+  /* Add shadow for better visibility */
+  filter: drop-shadow(0 0 2px rgba(0, 255, 64, 0.8)) !important;
+}
+
+.konva-Transformer-anchor:hover {
+  fill: #00ff40 !important;
+  stroke: #000 !important;
   width: 12px !important;
   height: 12px !important;
 }
 
 .konva-Transformer-rotationHandle {
   fill: #00ff40 !important;
+  stroke: #000 !important;
+  stroke-width: 2px !important;
+  cursor: grab !important;
+}
+
+/* CRITICAL: Ensure overlay center is draggable */
+.konvajs-content canvas {
+  cursor: move !important;
 }
 
 /* === END MODIFIED SECTION === */
@@ -530,20 +548,33 @@ main #wallet-status {
   main {
     padding: 20px 10px;
   }
-  
+
   .wallet-section h2,
   .nft-section h2,
   .overlay-section h2 {
     font-size: 2rem;
   }
-  
+
   .nft-list {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
-  
+
   .nft-display {
     max-width: 300px;
     height: 300px;
+  }
+
+  /* Hide transformer border on mobile for cleaner touch experience */
+  .konva-Transformer-node {
+    border: none !important;
+  }
+
+  .konva-Transformer-anchor {
+    display: none !important;
+  }
+
+  .konva-Transformer-rotationHandle {
+    display: none !important;
   }
 }
 
@@ -551,30 +582,46 @@ main #wallet-status {
   ::-webkit-scrollbar {
     display: none;
   }
-  
+
   .header {
     padding: 10px;
   }
-  
+
   .wallet-section h2,
   .nft-section h2,
   .overlay-section h2 {
     font-size: 1.5rem;
   }
-  
+
   .nft-list {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
-  
+
   .nft-display {
     max-width: 250px;
     height: 250px;
   }
-  
+
   .accessory-buttons {
     justify-content: left;
     flex-wrap: nowrap;
     padding: 0 5px;
     overflow-x: auto;
+  }
+
+  /* Enhanced mobile touch experience */
+  .konvajs-content {
+    touch-action: manipulation !important;
+  }
+
+  .konvajs-content canvas {
+    touch-action: manipulation !important;
+  }
+
+  /* Completely hide transformer on small mobile screens */
+  .konva-Transformer-node,
+  .konva-Transformer-anchor,
+  .konva-Transformer-rotationHandle {
+    display: none !important;
   }
 }
