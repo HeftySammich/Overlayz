@@ -368,12 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Stage dimensions:', stageWidth, stageHeight);
                 console.log('Scale ratios:', scaleRatioX, scaleRatioY);
                 
+                // Handle Groups approach - get dimensions and position from group
                 const overlayWidth = overlayImage.width() * overlayImage.scaleX();
                 const overlayHeight = overlayImage.height() * overlayImage.scaleY();
                 const overlayX = overlayImage.x();
                 const overlayY = overlayImage.y();
                 const rotation = overlayImage.rotation();
-                
+
                 console.log('Overlay properties:', {
                   x: overlayX,
                   y: overlayY,
@@ -381,21 +382,23 @@ document.addEventListener('DOMContentLoaded', () => {
                   height: overlayHeight,
                   rotation: rotation
                 });
-                
+
                 const centerX = overlayX + (overlayWidth / 2);
                 const centerY = overlayY + (overlayHeight / 2);
-                
+
                 const scaledCenterX = centerX * scaleRatioX;
                 const scaledCenterY = centerY * scaleRatioY;
                 const scaledWidth = overlayWidth * scaleRatioX;
                 const scaledHeight = overlayHeight * scaleRatioY;
-                
+
                 console.log('Scaled overlay center:', scaledCenterX, scaledCenterY);
                 console.log('Scaled overlay dimensions:', scaledWidth, scaledHeight);
-                
+
+                // Get the actual image from the group (second child after hit area)
+                const overlayImageNode = overlayImage.children[1]; // Index 1 is the image node
                 const overlayImg = new Image();
                 overlayImg.crossOrigin = 'Anonymous';
-                overlayImg.src = overlayImage.image().src;
+                overlayImg.src = overlayImageNode.image().src;
                 
                 overlayImg.onload = () => {
                   tempCtx.save();
@@ -661,14 +664,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Update Overlay Image - ENHANCED FOR DESKTOP WITH CONSISTENT DRAG
+  // Update Overlay Image - GROUPS APPROACH FOR RELIABLE CLICK DETECTION
   async function updateOverlayImage(src) {
     if (!selectedNFT || !stage) {
       console.log('No NFT selected or stage not initialized');
       return;
     }
 
-    console.log('Updating overlay image:', src);
+    console.log('Updating overlay image with Groups approach:', src);
 
     // ENHANCED CLEANUP - Complete state reset between overlays
     if (overlayImage) {
@@ -732,37 +735,63 @@ document.addEventListener('DOMContentLoaded', () => {
         overlayWidth = overlayHeight / aspectRatio;
       }
 
-      // Create overlay image using OFFICIAL KONVA PATTERN
-      const image = new Konva.Image({
-        image: overlay,
-        width: overlayWidth,
-        height: overlayHeight,
+      // GROUPS APPROACH: Create Group container for reliable hit detection
+      const overlayGroup = new Konva.Group({
         x: stage.width() / 2 - overlayWidth / 2,
         y: stage.height() / 2 - overlayHeight / 2,
+        width: overlayWidth,
+        height: overlayHeight,
         draggable: true,
         name: 'overlay'  // Important for selection logic
       });
 
-      // Add to layer
-      layer.add(image);
+      // Create invisible solid rectangle for reliable hit detection
+      const hitArea = new Konva.Rect({
+        x: 0,
+        y: 0,
+        width: overlayWidth,
+        height: overlayHeight,
+        fill: 'transparent',
+        listening: true  // Ensures this area responds to clicks
+      });
 
-      // Store reference
-      overlayImage = image;
+      // Create the actual overlay image for visual display
+      const overlayImageNode = new Konva.Image({
+        image: overlay,
+        x: 0,
+        y: 0,
+        width: overlayWidth,
+        height: overlayHeight,
+        listening: false  // Image doesn't need to listen, group handles it
+      });
+
+      // Add both to the group (hit area first for proper layering)
+      overlayGroup.add(hitArea);
+      overlayGroup.add(overlayImageNode);
+
+      // Add group to layer
+      layer.add(overlayGroup);
+
+      // Store reference to the group (not the image)
+      overlayImage = overlayGroup;
 
       // Select immediately with COMPREHENSIVE debugging
-      transformer.nodes([image]);
+      transformer.nodes([overlayGroup]);
       layer.draw();
 
-      console.log('=== OVERLAY DIAGNOSTIC START ===');
-      console.log('Overlay created using official Konva pattern - ready for interaction');
-      console.log('Image properties:');
-      console.log('  - draggable:', image.draggable());
-      console.log('  - listening:', image.listening());
-      console.log('  - visible:', image.visible());
-      console.log('  - name:', image.name());
-      console.log('  - x:', image.x(), 'y:', image.y());
-      console.log('  - width:', image.width(), 'height:', image.height());
-      console.log('  - scaleX:', image.scaleX(), 'scaleY:', image.scaleY());
+      console.log('=== GROUPS OVERLAY DIAGNOSTIC START ===');
+      console.log('Overlay created using Groups approach - reliable click detection');
+      console.log('Group properties:');
+      console.log('  - draggable:', overlayGroup.draggable());
+      console.log('  - listening:', overlayGroup.listening());
+      console.log('  - visible:', overlayGroup.visible());
+      console.log('  - name:', overlayGroup.name());
+      console.log('  - x:', overlayGroup.x(), 'y:', overlayGroup.y());
+      console.log('  - width:', overlayGroup.width(), 'height:', overlayGroup.height());
+      console.log('  - scaleX:', overlayGroup.scaleX(), 'scaleY:', overlayGroup.scaleY());
+      console.log('Group children:');
+      console.log('  - hit area (transparent rect):', hitArea.listening());
+      console.log('  - overlay image:', overlayImageNode.listening());
       console.log('Transformer state:');
       console.log('  - nodes count:', transformer.nodes().length);
       console.log('  - visible:', transformer.visible());
@@ -772,7 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('  - listening:', layer.listening());
       console.log('Stage state:');
       console.log('  - listening:', stage.listening());
-      console.log('=== OVERLAY DIAGNOSTIC END ===');
+      console.log('=== GROUPS OVERLAY DIAGNOSTIC END ===');
     };
 
     overlay.onerror = () => {
