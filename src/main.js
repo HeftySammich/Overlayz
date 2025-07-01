@@ -534,23 +534,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Detect if mobile device
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    // Create transformer with WORKING configuration
+    // Create transformer with MOBILE GESTURE SUPPORT
     transformer = new Konva.Transformer({
       nodes: [],
-      enabledAnchors: isMobile ? [] : ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-      borderStroke: isMobile ? 'transparent' : '#00ff40',
-      borderStrokeWidth: isMobile ? 0 : 2,
-      anchorStroke: isMobile ? 'transparent' : '#00ff40',
-      anchorFill: isMobile ? 'transparent' : '#000',
-      anchorSize: isMobile ? 0 : 10,
-      anchorStrokeWidth: isMobile ? 0 : 2,
-      rotateEnabled: !isMobile,
-      resizeEnabled: !isMobile,
+      enabledAnchors: isMobile ? ['top-left', 'top-right', 'bottom-left', 'bottom-right'] : ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+      borderStroke: isMobile ? '#00ff40' : '#00ff40',
+      borderStrokeWidth: isMobile ? 1 : 2,
+      anchorStroke: isMobile ? '#00ff40' : '#00ff40',
+      anchorFill: isMobile ? '#000' : '#000',
+      anchorSize: isMobile ? 15 : 10, // Larger touch targets for mobile
+      anchorStrokeWidth: isMobile ? 2 : 2,
+      rotateEnabled: true, // Enable rotation on mobile
+      resizeEnabled: true, // Enable resize on mobile
       keepRatio: true,
-      rotateAnchorOffset: isMobile ? 0 : 25,
+      rotateAnchorOffset: isMobile ? 30 : 25, // Larger rotation handle for mobile
       ignoreStroke: true,
-      visible: !isMobile,
-      borderEnabled: !isMobile,
+      visible: true, // Always visible for mobile gestures
+      borderEnabled: true,
       padding: 0
     });
 
@@ -568,8 +568,15 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('Is stage?', e.target === stage);
       console.log('Has overlay name?', e.target.hasName ? e.target.hasName('overlay') : 'no-hasName-method');
 
-      // if click on empty area - remove all selections
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      // if click on empty area - remove all selections (EXCEPT on mobile with overlay present)
       if (e.target === stage) {
+        // On mobile, keep overlay selected for gesture support
+        if (isMobile && overlayImage) {
+          console.log('Mobile: Keeping overlay selected for gestures');
+          return;
+        }
         transformer.nodes([]);
         layer.draw();
         console.log('Clicked on empty area - deselecting');
@@ -775,8 +782,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Store reference to the group (not the image)
       overlayImage = overlayGroup;
 
+      // MOBILE: Always select overlay for gesture support
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
       // Select immediately with COMPREHENSIVE debugging
       transformer.nodes([overlayGroup]);
+
+      // On mobile, keep transformer always visible for gestures
+      if (isMobile) {
+        transformer.visible(true);
+        console.log('Mobile: Overlay auto-selected for gesture support');
+      }
+
       layer.draw();
 
       console.log('=== GROUPS OVERLAY DIAGNOSTIC START ===');
