@@ -564,18 +564,7 @@ main #wallet-status {
     height: 300px;
   }
 
-  /* Hide transformer border on mobile for cleaner touch experience */
-  .konva-Transformer-node {
-    border: none !important;
-  }
-
-  .konva-Transformer-anchor {
-    display: none !important;
-  }
-
-  .konva-Transformer-rotationHandle {
-    display: none !important;
-  }
+  /* Mobile transformer controls now visible for resize/rotate functionality */
 }
 
 @media (max-width: 480px) {
