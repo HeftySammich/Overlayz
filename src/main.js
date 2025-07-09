@@ -368,28 +368,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Stage dimensions:', stageWidth, stageHeight);
                 console.log('Scale ratios:', scaleRatioX, scaleRatioY);
                 
-                // Handle Groups approach - get dimensions and position from group
-                const overlayWidth = overlayImage.width() * overlayImage.scaleX();
-                const overlayHeight = overlayImage.height() * overlayImage.scaleY();
-                const overlayX = overlayImage.x();
-                const overlayY = overlayImage.y();
+                // FIXED: Use getClientRect for accurate visual bounds after transformations
+                const clientRect = overlayImage.getClientRect();
                 const rotation = overlayImage.rotation();
 
                 console.log('Overlay properties:', {
-                  x: overlayX,
-                  y: overlayY,
-                  width: overlayWidth,
-                  height: overlayHeight,
+                  x: clientRect.x,
+                  y: clientRect.y,
+                  width: clientRect.width,
+                  height: clientRect.height,
                   rotation: rotation
                 });
 
-                const centerX = overlayX + (overlayWidth / 2);
-                const centerY = overlayY + (overlayHeight / 2);
+                const centerX = clientRect.x + (clientRect.width / 2);
+                const centerY = clientRect.y + (clientRect.height / 2);
 
                 const scaledCenterX = centerX * scaleRatioX;
                 const scaledCenterY = centerY * scaleRatioY;
-                const scaledWidth = overlayWidth * scaleRatioX;
-                const scaledHeight = overlayHeight * scaleRatioY;
+                const scaledWidth = clientRect.width * scaleRatioX;
+                const scaledHeight = clientRect.height * scaleRatioY;
 
                 console.log('Scaled overlay center:', scaledCenterX, scaledCenterY);
                 console.log('Scaled overlay dimensions:', scaledWidth, scaledHeight);
@@ -557,7 +554,9 @@ document.addEventListener('DOMContentLoaded', () => {
       padding: 5, // Add some padding for easier touch
       // CRITICAL: Add these mobile-specific properties
       centeredScaling: false,
-      flipEnabled: false
+      flipEnabled: false,
+      // CRITICAL: Allow unlimited movement - no boundary constraints
+      boundBoxFunc: (oldBox, newBox) => newBox
     });
 
     layer.add(transformer);
@@ -783,7 +782,11 @@ document.addEventListener('DOMContentLoaded', () => {
         width: overlayWidth,
         height: overlayHeight,
         draggable: true,
-        name: 'overlay'  // Important for selection logic
+        name: 'overlay',  // Important for selection logic
+        // CRITICAL: Allow unlimited drag positioning for accurate export
+        dragBoundFunc: function(pos) {
+          return pos; // No constraints - allow positioning anywhere
+        }
       });
 
       // FIXED: Create hit area with proper fill for reliable click detection
