@@ -552,22 +552,22 @@ main #wallet-status {
     height: 300px;
   }
 
-  /* MOBILE: Make transformer controls larger and more visible */
+  /* MOBILE: Keep transformer controls same size as desktop - hit detection now works properly */
   .konva-Transformer-anchor {
-    width: 18px !important;
-    height: 18px !important;
-    stroke-width: 3px !important;
+    width: 12px !important;
+    height: 12px !important;
+    stroke-width: 2px !important;
   }
 
   .konva-Transformer-anchor:hover {
-    width: 22px !important;
-    height: 22px !important;
+    width: 15px !important;
+    height: 15px !important;
   }
 
   .konva-Transformer-rotationHandle {
-    width: 20px !important;
-    height: 20px !important;
-    stroke-width: 3px !important;
+    width: 15px !important;
+    height: 15px !important;
+    stroke-width: 2px !important;
   }
 }
 
@@ -612,22 +612,22 @@ main #wallet-status {
   }
   */
 
-  /* MOBILE: Even larger controls for small screens */
+  /* MOBILE: Same size as desktop - hit detection now works properly */
   .konva-Transformer-anchor {
-    width: 22px !important;
-    height: 22px !important;
-    stroke-width: 4px !important;
+    width: 12px !important;
+    height: 12px !important;
+    stroke-width: 2px !important;
   }
 
   .konva-Transformer-anchor:hover {
-    width: 26px !important;
-    height: 26px !important;
+    width: 15px !important;
+    height: 15px !important;
   }
 
   .konva-Transformer-rotationHandle {
-    width: 24px !important;
-    height: 24px !important;
-    stroke-width: 4px !important;
+    width: 15px !important;
+    height: 15px !important;
+    stroke-width: 2px !important;
   }
 
   /* Enhanced mobile touch experience */
