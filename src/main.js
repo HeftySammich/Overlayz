@@ -875,15 +875,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const accountId = account.split(':').pop();
     localStorage.setItem('hederaAccountId', accountId);
     const walletStatus = document.getElementById('wallet-status');
-    if (walletStatus) {
-      walletStatus.textContent = `Connected: ${accountId}`;
-    } else {
-      console.error('wallet-status element not found');
-    }
     const connectButton = document.getElementById('connect-wallet');
     const disconnectButton = document.getElementById('disconnect-wallet');
+
+    // Hide status text and update disconnect button with account ID
+    if (walletStatus) walletStatus.style.display = 'none';
     if (connectButton) connectButton.style.display = 'none';
-    if (disconnectButton) disconnectButton.style.display = 'block';
+    if (disconnectButton) {
+      disconnectButton.textContent = `Disconnect ${accountId}`;
+      disconnectButton.style.display = 'block';
+    }
 
     fetchNFTs(accountId);
   }
@@ -896,11 +897,16 @@ document.addEventListener('DOMContentLoaded', () => {
         await dAppConnector.disconnect();
         dAppConnector = null;
         const walletStatus = document.getElementById('wallet-status');
-        if (walletStatus) walletStatus.textContent = 'Wallet not connected';
         const connectButton = document.getElementById('connect-wallet');
         const disconnectButton = document.getElementById('disconnect-wallet');
+
+        // Reset UI to disconnected state
+        if (walletStatus) walletStatus.style.display = 'block';
         if (connectButton) connectButton.style.display = 'block';
-        if (disconnectButton) disconnectButton.style.display = 'none';
+        if (disconnectButton) {
+          disconnectButton.textContent = 'Disconnect';
+          disconnectButton.style.display = 'none';
+        }
         const nftList = document.getElementById('nft-list');
         if (nftList) nftList.innerHTML = '<p class="nft-placeholder">Connect wallet to see NFTs</p>';
       }
