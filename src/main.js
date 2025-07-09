@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Initialize Konva stage - IMPROVED VERSION
+  // Initialize Konva stage
   function initKonvaStage() {
     console.log('Initializing Konva stage');
     const container = document.getElementById('nft-display');
@@ -530,45 +530,48 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create layer
     layer = new Konva.Layer();
     stage.add(layer);
-    
+
     // Detect if mobile device
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    // Create transformer with MOBILE GESTURE SUPPORT
+    // FIXED: Create transformer with PROPER MOBILE CONFIGURATION
     transformer = new Konva.Transformer({
       nodes: [],
-      enabledAnchors: isMobile ? ['top-left', 'top-right', 'bottom-left', 'bottom-right'] : ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-      borderStroke: isMobile ? '#00ff40' : '#00ff40',
-      borderStrokeWidth: isMobile ? 1 : 2,
-      anchorStroke: isMobile ? '#00ff40' : '#00ff40',
-      anchorFill: isMobile ? '#000' : '#000',
-      anchorSize: isMobile ? 15 : 10, // Larger touch targets for mobile
-      anchorStrokeWidth: isMobile ? 2 : 2,
-      rotateEnabled: true, // Enable rotation on mobile
-      resizeEnabled: true, // Enable resize on mobile
-      keepRatio: true,
-      rotateAnchorOffset: isMobile ? 30 : 25, // Larger rotation handle for mobile
+      // CRITICAL: Enable all anchors for mobile
+      enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+      borderStroke: '#00ff40',
+      borderStrokeWidth: 2,
+      anchorStroke: '#00ff40',
+      anchorFill: '#000',
+      // MOBILE: Make anchors much larger for touch
+      anchorSize: isMobile ? 20 : 12,
+      anchorStrokeWidth: 2,
+      rotateEnabled: true,
+      resizeEnabled: true,
+      keepRatio: false, // Allow free resize
+      // MOBILE: Make rotation handle larger and more accessible
+      rotateAnchorOffset: isMobile ? 40 : 30,
       ignoreStroke: true,
-      visible: true, // Always visible for mobile gestures
+      visible: true,
       borderEnabled: true,
-      padding: 0
+      padding: 5, // Add some padding for easier touch
+      // CRITICAL: Add these mobile-specific properties
+      centeredScaling: false,
+      flipEnabled: false
     });
 
     layer.add(transformer);
 
-    // CLEANED UP STAGE EVENT HANDLER - remove existing first to prevent accumulation
-    stage.off('click tap'); // Remove any existing handlers
+    // FIXED: Better click/tap handling for both desktop and mobile
+    stage.off('click tap touchstart'); // Remove any existing handlers
 
+    // Handle click/tap for selection
     stage.on('click tap', function (e) {
       console.log('=== CLICK DIAGNOSTIC ===');
       console.log('Click target:', e.target.constructor.name);
       console.log('Target name:', e.target.name ? e.target.name() : 'no-name');
-      console.log('Target draggable:', e.target.draggable ? e.target.draggable() : 'no-draggable-property');
-      console.log('Target listening:', e.target.listening ? e.target.listening() : 'no-listening-property');
-      console.log('Is stage?', e.target === stage);
-      console.log('Has overlay name?', e.target.hasName ? e.target.hasName('overlay') : 'no-hasName-method');
-
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      console.log('Target parent:', e.target.parent ? e.target.parent.constructor.name : 'no-parent');
+      console.log('Target parent name:', e.target.parent && e.target.parent.name ? e.target.parent.name() : 'no-parent-name');
 
       // if click on empty area - remove all selections (EXCEPT on mobile with overlay present)
       if (e.target === stage) {
@@ -583,19 +586,50 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // do nothing if clicked NOT on our overlay
-      if (!e.target.hasName('overlay')) {
+      // FIXED: Check if target is overlay group OR child of overlay group
+      let targetGroup = null;
+
+      // If target has name 'overlay', it's the group itself
+      if (e.target.hasName && e.target.hasName('overlay')) {
+        targetGroup = e.target;
+        console.log('Clicked directly on overlay group');
+      }
+      // If target's parent has name 'overlay', it's a child of the group
+      else if (e.target.parent && e.target.parent.hasName && e.target.parent.hasName('overlay')) {
+        targetGroup = e.target.parent;
+        console.log('Clicked on child of overlay group');
+      }
+
+      if (!targetGroup) {
         console.log('Clicked on non-overlay object');
         return;
       }
 
-      // select the overlay
-      transformer.nodes([e.target]);
+      // select the overlay group
+      transformer.nodes([targetGroup]);
       layer.draw();
-      console.log('Overlay selected via click');
+      console.log('Overlay group selected via click');
     });
-    
-    // Handle window resize - CLEANED UP (remove existing first)
+
+    // MOBILE: Add touch event handling for better gesture support
+    if (isMobile) {
+      stage.on('touchstart', function (e) {
+        // Only prevent default for overlay interactions, not stage clicks
+        if (overlayImage && (e.target === overlayImage || (e.target.parent && e.target.parent === overlayImage))) {
+          e.evt.preventDefault();
+          // Ensure overlay stays selected on touch
+          transformer.nodes([overlayImage]);
+          layer.draw();
+        }
+      });
+
+      // Prevent context menu on long press
+      stage.on('contextmenu', function (e) {
+        e.evt.preventDefault();
+      });
+    }
+
+    // Handle window resize
     const handleResize = () => {
       const newWidth = container.clientWidth;
       const newHeight = container.clientHeight;
@@ -607,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Remove any existing resize listeners to prevent accumulation
     window.removeEventListener('resize', handleResize);
     window.addEventListener('resize', handleResize);
-    
+
     console.log('Konva stage initialized with size:', containerWidth, containerHeight);
   }
 
@@ -752,13 +786,13 @@ document.addEventListener('DOMContentLoaded', () => {
         name: 'overlay'  // Important for selection logic
       });
 
-      // Create invisible solid rectangle for reliable hit detection
+      // FIXED: Create hit area with proper fill for reliable click detection
       const hitArea = new Konva.Rect({
         x: 0,
         y: 0,
         width: overlayWidth,
         height: overlayHeight,
-        fill: 'transparent',
+        fill: 'rgba(0,0,0,0.01)', // Very transparent but not fully transparent for hit detection
         listening: true  // Ensures this area responds to clicks
       });
 
@@ -769,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
         y: 0,
         width: overlayWidth,
         height: overlayHeight,
-        listening: false  // Image doesn't need to listen, group handles it
+        listening: true  // FIXED: Enable listening on image too for better hit detection
       });
 
       // Add both to the group (hit area first for proper layering)

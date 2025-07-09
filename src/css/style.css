@@ -364,32 +364,23 @@ main #wallet-status {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* === START MODIFIED SECTION: Konva Canvas and Transformer Styles === */
+/* FIXED: Canvas and Konva Transformer Styles for Mobile */
 .nft-display .konvajs-content {
   width: 100% !important;
   height: 100% !important;
-  touch-action: none;
-  /* Changed from pinch-zoom to none to prevent browser gestures */
+  /* CRITICAL: Use 'none' to prevent browser interference with gestures */
+  touch-action: none !important;
 }
 
 .nft-display .konvajs-content canvas {
   width: 100% !important;
   height: 100% !important;
-  user-select: none;
-  /* Prevent text selection during drag */
-}
-
-/* Enhance transformer visibility and touch-friendliness */
-.konvajs-content {
-  touch-action: none !important;
-}
-
-.konvajs-content canvas {
-  touch-action: none !important;
   user-select: none !important;
+  /* CRITICAL: Consistent touch-action */
+  touch-action: none !important;
 }
 
-/* FIXED transformer for proper drag/resize separation */
+/* MOBILE: Enhanced transformer visibility and touch-friendliness */
 .konva-Transformer-node {
   border: 2px solid #00ff40 !important;
 }
@@ -398,18 +389,19 @@ main #wallet-status {
   fill: #000 !important;
   stroke: #00ff40 !important;
   stroke-width: 2px !important;
-  width: 10px !important;  /* SMALLER for corner-only resize */
-  height: 10px !important;
-  cursor: nw-resize !important;  /* Clear resize cursor */
-  /* Add shadow for better visibility */
-  filter: drop-shadow(0 0 2px rgba(0, 255, 64, 0.8)) !important;
+  /* MOBILE: Larger anchors for easier touch */
+  width: 12px !important;
+  height: 12px !important;
+  cursor: nw-resize !important;
+  /* Enhanced visibility with shadow */
+  filter: drop-shadow(0 0 3px rgba(0, 255, 64, 0.8)) !important;
 }
 
 .konva-Transformer-anchor:hover {
   fill: #00ff40 !important;
   stroke: #000 !important;
-  width: 12px !important;
-  height: 12px !important;
+  width: 15px !important;
+  height: 15px !important;
 }
 
 .konva-Transformer-rotationHandle {
@@ -417,14 +409,10 @@ main #wallet-status {
   stroke: #000 !important;
   stroke-width: 2px !important;
   cursor: grab !important;
+  /* MOBILE: Larger rotation handle */
+  width: 15px !important;
+  height: 15px !important;
 }
-
-/* CRITICAL: Ensure overlay center is draggable */
-.konvajs-content canvas {
-  cursor: move !important;
-}
-
-/* === END MODIFIED SECTION === */
 
 .canvas-placeholder {
   position: absolute;
@@ -564,7 +552,23 @@ main #wallet-status {
     height: 300px;
   }
 
-  /* Mobile transformer controls now visible for resize/rotate functionality */
+  /* MOBILE: Make transformer controls larger and more visible */
+  .konva-Transformer-anchor {
+    width: 18px !important;
+    height: 18px !important;
+    stroke-width: 3px !important;
+  }
+
+  .konva-Transformer-anchor:hover {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .konva-Transformer-rotationHandle {
+    width: 20px !important;
+    height: 20px !important;
+    stroke-width: 3px !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -598,19 +602,40 @@ main #wallet-status {
     overflow-x: auto;
   }
 
-  /* Enhanced mobile touch experience */
-  .konvajs-content {
-    touch-action: manipulation !important;
-  }
-
-  .konvajs-content canvas {
-    touch-action: manipulation !important;
-  }
-
-  /* Completely hide transformer on small mobile screens */
+  /* CRITICAL FIX: REMOVE the display: none that was hiding transformer controls */
+  /* The following lines are REMOVED/COMMENTED OUT: */
+  /*
   .konva-Transformer-node,
   .konva-Transformer-anchor,
   .konva-Transformer-rotationHandle {
     display: none !important;
+  }
+  */
+
+  /* MOBILE: Even larger controls for small screens */
+  .konva-Transformer-anchor {
+    width: 22px !important;
+    height: 22px !important;
+    stroke-width: 4px !important;
+  }
+
+  .konva-Transformer-anchor:hover {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .konva-Transformer-rotationHandle {
+    width: 24px !important;
+    height: 24px !important;
+    stroke-width: 4px !important;
+  }
+
+  /* Enhanced mobile touch experience */
+  .konvajs-content {
+    touch-action: none !important;
+  }
+
+  .konvajs-content canvas {
+    touch-action: none !important;
   }
 }
